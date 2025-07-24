@@ -1,0 +1,7 @@
+[
+  {
+    "origin": ["http://127.0.0.1:8080", "http://localhost:8080"], // 로컬 개발 서버의 주소
+    "method": ["GET", "PUT", "POST", "DELETE"],
+    "maxAgeSeconds": 3600
+  }
+]

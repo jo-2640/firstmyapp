@@ -1,0 +1,13 @@
+[debug] [2025-07-24T04:03:28.008Z] ----------------------------------------------------------------------
+[debug] [2025-07-24T04:03:28.010Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\jo\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js login
+[debug] [2025-07-24T04:03:28.011Z] CLI Version:   14.11.1
+[debug] [2025-07-24T04:03:28.011Z] Platform:      win32
+[debug] [2025-07-24T04:03:28.011Z] Node Version:  v22.17.1
+[debug] [2025-07-24T04:03:28.011Z] Time:          Thu Jul 24 2025 13:03:28 GMT+0900 (대한민국 표준시)
+[debug] [2025-07-24T04:03:28.011Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-07-24T04:03:28.013Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2025-07-24T04:03:28.172Z] Object "" in "firebase.json" has unknown property: {"additionalProperty":"flutter"}
+[info] i  The Firebase CLI’s MCP server feature can optionally make use of Gemini in Firebase. Learn more about Gemini in Firebase and how it uses your data: https://firebase.google.com/docs/gemini-in-firebase#how-gemini-in-firebase-uses-your-data 
+[debug] [2025-07-24T04:03:28.742Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2025-07-24T04:03:28.742Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>심플 채팅</title>
+
+  <link rel="stylesheet" href="HomeLayOut.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+  <link rel="icon" type="image/png" href="img/favicons/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="img/favicons/favicon.svg" />
+  <link rel="shortcut icon" href="img/favicons/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="img/favicons/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+
+</head>
+<body>
+<section id="auth-section" class="auth-container">
+  <h2 id="auth-title">로그인</h2>
+  <div class="auth-form">
+    <div class="input-group">
+      <input type="email" id="auth-email" placeholder="이메일" required>
+    </div>
+
+    <div class="input-group">
+      <div class="password-input-container">
+        <input type="password" id="auth-password" class="auth-input" placeholder="비밀번호 (6자 이상)">
+        <span class="toggle-password" data-target="auth-password">👁️</span>
+      </div>
+    </div>
+
+    <div class="input-group hidden" id="signup-password-confirm-group">
+      <div class="password-input-container">
+        <input type="password" id="signup-password-confirm" class="auth-input signup-field" placeholder="비밀번호 확인">
+        <span class="toggle-password" data-target="signup-password-confirm">👁️</span>
+      </div>
+    </div>
+
+    <div id="signup-fields" class="hidden">
+      <div class="input-group">
+        <input type="text" id="signup-nickname" class="signup-field" placeholder="닉네임" maxlength="20" required>
+      </div>
+      <div class="input-group">
+        <select id="signup-gender" class="signup-field" required>
+          <option value="male">남성</option>
+          <option value="female">여성</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label for="signup-birth-year">탄생 연도</label>
+        <select id="signup-birth-year" class="signup-field"></select>
+      </div>
+      <div class="input-group">
+        <label for="signup-min-age">관심 나이대 (최소)</label>
+        <select id="signup-min-age" class="signup-field" required>
+          <option value="">최소나이대 선택</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label for="signup-max-age">관심 나이대 (최대)</label>
+        <select id="signup-max-age" class="signup-field" required>
+          <option value="">최대나이대 선택</option>
+        </select>
+      </div>
+
+      <div class="input-group"> <select id="signup-region" class="signup-field" required>
+        <option value="">지역 선택</option>
+        <option value="seoul">서울</option>
+        <option value="gyeonggi">경기</option>
+        <option value="incheon">인천</option>
+        <option value="busan">부산</option>
+        <option value="daegu">대구</option>
+        <option value="gwangju">광주</option>
+        <option value="daejeon">대전</option>
+        <option value="ulsan">울산</option>
+        <option value="sejong">세종</option>
+        <option value="gangwon">강원</option>
+        <option value="chungbuk">충북</option>
+        <option value="chungnam">충남</option>
+        <option value="jeonbuk">전북</option>
+        <option value="jeonnam">전남</option>
+        <option value="gyeongbuk">경북</option>
+        <option value="gyeongnam">경남</option>
+        <option value="jeju">제주</option>
+      </select>
+      </div>
+      <div class="input-group"> <textarea id="signup-bio" class="signup-field" placeholder="소개 (선택 사항, 최대 100자)" maxlength="100"></textarea>
+      </div>
+      <div class="profile-img-upload">
+        <label for="signup-profile-image-upload-input" class="upload-label">
+          <img id="signup-profile-img-preview" src="img/default_profile_guest.png" alt="프로필 이미지 미리보기">
+          <span>프로필 이미지 선택</span>
+        </label>
+        <input type="file" id="signup-profile-image-upload-input" class="signup-field" accept="image/*">
+        <span id="signup-profile-display-image" class="file-name-display">선택된 파일 없음</span>
+        <button type="button" id="signup-profile-img-clear-btn" class="action-btn secondary clear-btn">선택 취소</button>
+      </div>
+    </div> <button id="auth-submit-btn">로그인</button>
+    <p id="auth-error-message" class="error-message"></p>
+    <p class="auth-switch-text">
+      <button id="auth-switch-btn" class="link-btn">계정이 없으신가요? 회원가입</button>
+    </p>
+  </div> </section>
+
+<header class="app-header hidden">
+  <div class="MyProfilediv">
+    <img id="my-profile-img" src="img/default_profile_guest.png" alt="내 프로필 이미지">
+    <span id="my-nickname">닉네임</span>
+  </div>
+  <div class="auth-buttons">
+    <button id="deleteAllDataBtn" class="btn btn-danger">모든 데이터 삭제 (위험!)</button>
+    <button id="btnLogout" class="btn btn-secondary">로그아웃</button>
+  </div>
+
+</header>
+<p id="main-welcome-message" class="welcome-message">환영합니다! 로그인 해주세요.</p>
+
+<div class="app-content hidden">
+  <aside class="sidebar">
+    <div class="friendListDiv">
+      <h3>친구 목록</h3>
+      <ul id="friend-list" class="user-list">
+      </ul>
+      <button id="btn-friend-requests" class="action-btn primary">
+        <i class="fas fa-user-friends"></i> 친구 요청
+        <span id="request-count-badge" class="badge">0</span>
+      </button>
+    </div>
+
+    <div class="sidebar-section filter-section">
+      <h3>사용자 필터</h3>
+      <div class="filter-group">
+        <label for="filter-gender">성별:</label>
+        <select id="filter-gender">
+          <option value="all">성별 전체</option>
+          <option value="male">남성</option>
+          <option value="female">여성</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filter-min-age-group">최소 나이대:</label>
+        <select id="filter-min-age-group">
+          <option value="all">전체</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filter-max-age-group">최대 나이대:</label>
+        <select id="filter-max-age-group">
+          <option value="all">전체</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filter-region">지역:</label>
+        <select id="filter-region">
+          <option value="all">전체</option>
+          <option value="seoul">서울</option>
+          <option value="gyeonggi">경기</option>
+          <option value="incheon">인천</option>
+          <option value="busan">부산</option>
+          <option value="daegu">대구</option>
+          <option value="gwangju">광주</option>
+          <option value="daejeon">대전</option>
+          <option value="ulsan">울산</option>
+          <option value="sejong">세종</option>
+          <option value="gangwon">강원</option>
+          <option value="chungbuk">충북</option>
+          <option value="chungnam">충남</option>
+          <option value="jeonbuk">전북</option>
+          <option value="jeonnam">전남</option>
+          <option value="gyeongbuk">경북</option>
+          <option value="gyeongnam">경남</option>
+          <option value="jeju">제주</option>
+        </select>
+      </div>
+      <button id="apply-filter-btn" class="action-btn primary">필터 적용</button>
+    </div>
+  </aside>
+
+  <section class="main-content">
+    <div class="allUserDiv">
+      <h3>다른 사용자</h3>
+      <button id="refresh-users-btn" class="action-btn secondary">
+        <i class="fas fa-sync-alt"></i> 새로고침
+      </button>
+      <ul id="user-list" class="user-list">
+      </ul>
+    </div>
+  </section>
+</div>
+
+<div class="toast-notification"></div>
+
+<div id="chat-modal-overlay" class="modal-overlay hidden">
+  <div id="chat-modal" class="modal">
+    <div class="modal-header">
+      <h3 id="chat-room-name">채팅방</h3>
+      <button id="chat-modal-close-btn" class="close-btn">&times;</button>
+    </div>
+    <div id="chat-messages" class="chat-messages">
+    </div>
+    <div class="chat-input-area">
+      <input type="text" id="chat-message-input" placeholder="메시지를 입력하세요...">
+      <button id="chat-send-btn">전송</button>
+    </div>
+  </div>
+</div>
+
+<div id="friend-request-message-modal-overlay" class="modal-overlay hidden">
+  <div id="friend-request-message-modal" class="modal">
+    <div class="modal-header">
+      <h3>친구 요청 보내기</h3>
+      <button id="friend-request-message-modal-close-btn" class="close-btn">&times;</button>
+    </div>
+    <div class="modal-content">
+      <div id="request-target-info" class="request-target-info">
+        <img id="request-target-img" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="프로필 이미지">
+        <span id="request-target-nickname"></span>
+      </div>
+      <textarea id="request-message-input" placeholder="친구 요청 메시지를 입력하세요 (선택 사항)" maxlength="100"></textarea>
+      <div class="modal-actions">
+        <button id="send-request-btn" class="action-btn primary">요청 보내기</button>
+        <button id="send-request-cancel-btn" class="action-btn secondary">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="friend-requests-inbox-modal-overlay" class="modal-overlay hidden">
+  <div id="friend-requests-inbox-modal" class="modal">
+    <div class="modal-header">
+      <h3>받은 친구 요청</h3>
+      <button id="friend-requests-inbox-modal-close-btn" class="close-btn">&times;</button>
+    </div>
+    <div class="modal-content">
+      <ul id="received-friend-requests-list" class="user-list">
+      </ul>
+      <p id="no-pending-requests" style="text-align: center; color: #666; display: none;">받은 친구 요청이 없습니다.</p>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="script.js"></script>
+
+</body>
+</html>

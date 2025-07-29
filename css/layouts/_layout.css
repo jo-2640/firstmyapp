@@ -1,0 +1,111 @@
+/* css/layouts/_layout.css */
+
+/* 기본 스타일 */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f7f6;
+    min-height: 100vh;
+    color: #333;
+    display: flex; /* Flexbox 컨테이너로 설정 */
+    flex-direction: column; /* 자식 요소들을 세로로 쌓습니다 */
+    justify-content: center; /* <-- 이 부분을 flex-start 에서 center 로 변경 */
+    align-items: center; /* 교차 축(가로)을 따라 아이템을 중앙에 정렬 */
+}
+
+/* 컨테이너 및 섹션 */
+.auth-container,
+.main-app { /* auth-container와 main-app에 공통 스타일 적용 */
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    width: 100%; /* 너비를 100%로 설정하되, max-width로 제한 */
+    text-align: center;
+    /* margin: auto; 제거 - body의 flexbox 정렬이 담당 */
+}
+
+.auth-container {
+    max-width: 400px; /* 인증 컨테이너의 최대 너비 */
+    margin-top: 50px; /* 상단에 약간의 여백 추가 */
+    margin-bottom: 20px; /* 하단에 약간의 여백 추가 */
+}
+
+.main-app {
+    max-width: 800px; /* 메인 앱 컨테이너의 최대 너비 */
+    display: flex; /* 내부 요소들을 flexbox로 정렬 */
+    flex-direction: column; /* 자식 요소들을 세로로 정렬 */
+    gap: 20px; /* 자식 요소들 사이의 간격 */
+    margin-top: 20px; /* 상단 여백 추가 */
+    margin-bottom: 20px; /* 하단 여백 추가 */
+}
+
+
+/* 헤더 스타일 */
+.app-header {
+    width: 100%;
+    max-width: 800px; /* main-app과 동일한 최대 너비 유지 */
+    background-color: #fff;
+    padding: 15px 30px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    margin-top: 20px; /* body의 align-items: center와 함께 상단 여백 조절 */
+}
+
+.app-header .user-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* 내 프로필 이미지 (헤더) */
+#my-profile-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #007bff;
+}
+
+/* 메인 컨텐츠 영역 */
+.app-content {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    max-width: 800px; /* header와 동일한 최대 너비 */
+    margin-bottom: 20px;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .main-app {
+        flex-direction: column;
+        padding: 15px;
+    }
+
+    .app-header {
+        padding: 10px 15px;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .app-content {
+        flex-direction: column;
+        padding: 0 15px;
+    }
+
+    .modal { /* 모달의 반응형은 components/_modals.css로 이동하는 것이 더 좋습니다. */
+        padding: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-container, .main-app {
+        padding: 20px;
+    }
+}

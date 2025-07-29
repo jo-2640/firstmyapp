@@ -12,13 +12,6 @@ export function showToast(message, type = 'info') {
         toast.className = 'toast-notification';
     }, 3000);
 }
-// 출생 연도를 기반으로 사용자의 연령대 레이블을 반환합니다.
-// 이 함수는 주로 프로필 표시 등에서 사용될 때, 저장된 'value'에 해당하는 상세 레이블을 반환합니다.
-export function getAgeGroupLabel(ageGroupValue) {
-    const group = detailedAgeGroups.find(g => g.value === ageGroupValue);
-    // 'label' 속성에는 "20대 초반 (20-23세)"와 같이 상세 정보가 포함됩니다.
-    return group ? group.label : '나이 정보 없음';
-}
 
 // 성별 값을 한국어 레이블로 변환합니다.
 export function getGenderLabel(gender) {
@@ -61,6 +54,14 @@ export function getDefaultProfileImage(gender) {
         return 'img/default_profile_guest.png';
     }
 }
+// 출생 연도를 기반으로 사용자의 연령대 레이블을 반환합니다.
+// 이 함수는 주로 프로필 표시 등에서 사용될 때, 저장된 'value'에 해당하는 상세 레이블을 반환합니다.
+export function getAgeGroupLabel(ageGroupValue) {
+    const group = detailedAgeGroups.find(g => g.value === ageGroupValue);
+    // 'label' 속성에는 "20대 초반 (20-23세)"와 같이 상세 정보가 포함됩니다.
+    return group ? group.label : '나이 정보 없음';
+}
+
 
 // 모든 나이대 그룹 정보 (baseLabel, min, max, label 포함)
 // 'label' 속성에는 "20대 초반 (20-23세)"와 같이 상세 정보가 포함됩니다.

@@ -63,7 +63,7 @@ if (window.__APP_SCRIPT_INITIALIZED__) {
                 showToast('모든 데이터 삭제 요청 중...', 'info');
 
                 try {
-                    const response = await fetch('http://localhost:3000/delete-all-data', {
+                    const response = await fetch('http://localhost:3000/api/delete-all-data', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' }
                     });
@@ -72,7 +72,12 @@ if (window.__APP_SCRIPT_INITIALIZED__) {
                     if (response.ok && data.success) {
                         showToast(data.message, 'success');
                         console.log('데이터 삭제 성공:', data.message);
-                        window.location.reload();
+                        const auth = firebase.auth(); // 또는 getAuth() 등으로 auth 인스턴스를 가져오세요.
+
+                        if (auth.currentUser) { // 현재 로그인된 사용자가 있다면
+                             await auth.signOut(); // 명시적으로 로그아웃
+                             console.log("[Auth Service] 모든 데이터 삭제 후 Firebase 세션 로그아웃 완료.");
+                        }
                     } else {
                         const errorMessage = data.message || '데이터 삭제 실패';
                         showToast(errorMessage, 'error');

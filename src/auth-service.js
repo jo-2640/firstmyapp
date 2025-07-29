@@ -2,8 +2,7 @@
 
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-
-import { auth, db } from './firebase-init.js'; // 새로 생성된 firebase-init.js에서 auth, db import
+import {auth, db}  from './firebase-init.js'; //firebase 객체를 얻어온다
 import { showToast, getDefaultProfileImage } from '../utils.js';
 import { clearMyProfileUI, initializeMyProfileDivUI } from '../js/myProfileDiv.js';
 import { filterDisplayUsers } from '../js/allUserDiv.js';
@@ -11,6 +10,7 @@ import { updateFriendRequestBadge } from '../friendRequest.js';
 import { setCurrentUser, clearCurrentUser, currentUserUid, currentUserData, currentUserNickname } from './user-data.js'; // 사용자 정보 모듈 import
 import { getSignUpMode, toggleSignUpMode } from '../signup.js'; // signup.js에서 가져옴
 
+export { signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword};
 // Firestore 리스너 구독 해제를 위한 변수
 let unsubscribeFromUserProfile = null;
 let profileLoadTimeout = null;
@@ -302,4 +302,3 @@ export const setupAuthListener = () => {
 };
 
 // 필요한 Firebase Auth 관련 함수들을 여기서 export 합니다.
-export { signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, updateProfile };

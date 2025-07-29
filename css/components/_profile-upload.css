@@ -1,0 +1,41 @@
+/* css/components/_profile-upload.css */
+
+/* 프로필 이미지 업로드 */
+.profile-img-upload {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.profile-img-upload .upload-label {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    color: #007bff;
+    font-size: 0.9em;
+}
+
+.profile-img-upload img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ddd;
+    margin-bottom: 5px;
+}
+
+.profile-img-upload input[type="file"] {
+    display: none; /* 실제 파일 입력 필드는 숨김 */
+}
+
+/* 회원가입 미리보기 이미지 */
+#signup-profile-img-preview {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 50%;
+    margin-bottom: 15px; /* 미리보기 이미지 하단 여백 추가 */
+}

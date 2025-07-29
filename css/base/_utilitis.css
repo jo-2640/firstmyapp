@@ -1,0 +1,74 @@
+/* css/base/_utilities.css */
+
+/* 배지 스타일 (친구 요청 수) */
+.badge {
+    background-color: #dc3545;
+    color: white;
+    font-size: 0.7em;
+    padding: 3px 7px;
+    border-radius: 50%;
+    margin-left: 5px;
+    vertical-align: top;
+}
+
+/* 토스트 알림 */
+.toast-notification {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(50, 50, 50, 0.9);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 0.9em;
+    z-index: 1001;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    pointer-events: none; /* 클릭 이벤트 방지 */
+}
+
+.toast-notification.show {
+    opacity: 1;
+}
+
+/* 숨김 클래스 */
+.hidden {
+    display: none !important;
+}
+
+/* 필터 섹션 (현재는 유틸리티에 두기 애매하지만, 다른 카테고리에 확실히 속하기 전까지 여기에 배치) */
+.filter-section .filter-group {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.filter-section label {
+    flex-basis: 70px; /* 라벨 너비 고정 */
+    font-size: 0.9em;
+    color: #555;
+}
+
+.filter-section select {
+    flex-grow: 1; /* 드롭다운이 남은 공간 채움 */
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+/* 사용자 목록 메시지 (p-4 text-gray-500 / p-4 text-red-500) */
+/* 이들은 직접적인 HTML 문자열에 인라인으로 들어가는 경우가 많으므로,
+   기존 .user-list li 스타일을 확장하여 처리 */
+.user-list li.p-4 { /* p-4 클래스가 HTML에 직접 들어간 경우 */
+    padding: 16px;
+}
+
+.user-list li.text-gray-500 {
+    color: #6b7280; /* gray-500 */
+}
+
+.user-list li.text-red-500 {
+    color: #ef4444; /* red-500 */
+}

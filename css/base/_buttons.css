@@ -1,0 +1,131 @@
+/* css/base/_buttons.css */
+
+/* 버튼 스타일 (기존 공통 버튼 스타일) */
+.action-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s ease;
+    white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+}
+
+.action-btn:hover {
+    background-color: #0056b3;
+}
+
+.action-btn.secondary {
+    background-color: #6c757d;
+}
+
+.action-btn.secondary:hover {
+    background-color: #5a6268;
+}
+
+.link-btn {
+    background: none;
+    border: none;
+    color: #007bff;
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 0.9em;
+    padding: 0;
+}
+
+.link-btn:hover {
+    color: #0056b3;
+}
+
+/* ★★★ 새로고침 버튼 애니메이션 및 로딩 상태 관련 추가 CSS ★★★ */
+
+/* 보조 액션 버튼 내 아이콘 특정 스타일 */
+.action-btn.secondary i {
+    margin-right: 5px; /* 아이콘과 텍스트 사이 간격 */
+}
+
+/* Font Awesome 아이콘 회전 애니메이션 */
+.fa-sync-alt.spinning {
+    animation: spin 1s infinite linear; /* 1초, 무한 반복, 선형 회전 */
+}
+
+/* 회전 애니메이션 키프레임 */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 버튼이 로딩 상태일 때의 스타일 */
+.action-btn.loading {
+    opacity: 0.7; /* 약간 투명하게 만듦 */
+    cursor: not-allowed; /* 클릭 불가능함을 나타내는 커서 변경 */
+}
+
+#refresh-users-btn {
+    background-color: #28a745; /* 초록색 계열 */
+}
+
+#refresh-users-btn:hover {
+    background-color: #218838; /* 호버 시 더 진한 초록색 */
+}
+
+/* --- 동적으로 생성되는 사용자 목록 항목 스타일 (Tailwind 변환) --- */
+
+/* 기본 버튼 스타일 (여러 버튼에서 공통으로 사용될 수 있는 스타일) */
+.base-button {
+    padding: 4px 12px; /* Tailwind의 px-3 (0.75rem), py-1 (0.25rem)에 해당 */
+    border-radius: 6px; /* Tailwind의 rounded-md (0.375rem)에 해당 */
+    font-size: 0.875rem; /* Tailwind의 text-sm (14px)에 해당 */
+    color: white;
+    border: none; /* 기본 테두리 제거 */
+    cursor: pointer; /* 클릭 가능한 커서 모양 */
+    transition: background-color 0.2s ease-in-out; /* 배경색 변화에 부드러운 전환 효과 */
+}
+
+/* '요청 보냄 (취소)' 버튼 */
+.cancel-friend-request-btn {
+    /* .base-button에서 기본 스타일 상속 */
+    background-color: #ef4444; /* Tailwind red-500에 해당하는 색상 */
+}
+
+.cancel-friend-request-btn:hover {
+    background-color: #dc2626; /* Tailwind red-600에 해당하는 색상 */
+}
+
+/* '요청 받음' 버튼 (비활성화 상태) */
+.received-request-btn {
+    background-color: #3b82f6; /* Tailwind blue-500에 해당하는 색상 */
+    color: white;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    cursor: not-allowed; /* 마우스 오버 시 금지 표시 */
+    opacity: 0.7; /* 비활성화된 느낌을 주기 위한 투명도 */
+    border: none;
+}
+
+/* '친구 요청' 버튼 (기본 액션 버튼) */
+.primary-action-btn {
+    /* .base-button에서 기본 스타일 상속 */
+    background-color: #22c55e; /* Tailwind green-500에 해당하는 색상 */
+}
+
+.primary-action-btn:hover {
+    background-color: #16a34a; /* Tailwind green-600에 해당하는 색상 */
+}
+/* primary-action-btn 스타일에 추가 */
+.icon-text-btn {
+    display: flex; /* 아이콘과 텍스트를 가로로 나열 */
+    align-items: center; /* 세로 중앙 정렬 */
+    justify-content: center; /* 가로 중앙 정렬 */
+}
+
+.icon-text-btn i {
+    margin-right: 8px; /* 아이콘과 텍스트 사이 간격 */
+}

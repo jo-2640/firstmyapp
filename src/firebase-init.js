@@ -32,4 +32,3 @@ setPersistence(auth, browserSessionPersistence)
     .catch((error) => {
         console.error("[Firebase Init] Firebase Auth persistence 전역 설정 오류:", error);
     });
-

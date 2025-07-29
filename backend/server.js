@@ -67,7 +67,7 @@ ensureContainerExists();
 
 // ⭐⭐⭐ 중요 수정: getDefaultProfileImageUrl 함수를 클라이언트의 전체 URL을 반환하도록 변경 ⭐⭐⭐
 // 클라이언트 (Vite 개발 서버)의 주소를 직접 참조합니다.
-const CLIENT_BASE_URL = 'http://localhost:5173';
+const CLIENT_BASE_URL = process.env.CLIENT_BASE_URL || 'http://localhost:5173';
 
 function getDefaultProfileImageUrl(gender) {
     if (gender === 'male') {
@@ -81,78 +81,205 @@ function getDefaultProfileImageUrl(gender) {
 
 // ... (기존 require, express, firebase 초기화, Azure 설정 등 유지) ...
 
+app.get('/api/getBirthYearRange',(req, res) => {
+
+    // SERVER_MIN_BIRTH_YEAR 처리
+    const envMinYear = parseInt(process.env.SERVER_MIN_BIRTH_YEAR, 10);
+    if (Number.isInteger(envMinYear)) {
+        minYear = envMinYear;
+    } else {
+        minYear = 1950; // 환경 변수가 유효하지 않으면 기본값 사용
+        console.warn(`SERVER_MIN_BIRTH_YEAR 환경 변수 값이 유효하지 않습니다. 기본값 ${minYear} 사용.`);
+    }
+
+    // SERVER_MAX_BIRTH_YEAR 처리
+    const envMaxYear = parseInt(process.env.SERVER_MAX_BIRTH_YEAR, 10);
+    if (Number.isInteger(envMaxYear)) {
+        maxYear = envMaxYear;
+    } else {
+        maxYear = new Date().getFullYear(); // 환경 변수가 유효하지 않으면 현재 연도 사용
+        console.warn(`SERVER_MAX_BIRTH_YEAR 환경 변수 값이 유효하지 않습니다. 기본값 ${maxYear} 사용.`);
+    }
+
+    res.status(200).json({success: true,
+        minYear: minYear,
+        maxYear: maxYear
+    });
+});
 // 회원가입 API 엔드포인트 추가 (또는 기존 회원가입 로직에 삽입)
 app.post('/api/signup', async (req, res) => {
     try {
-        const { nickname, email, password, gender, minAgeGroup, maxAgeGroup, bio, profileImgUrl } = req.body; // 클라이언트에서 받는 모든 필드
+        const { email, password, nickname, birthYear, region, gender, minAgeGroup, maxAgeGroup, bio, profileImgUrl } = req.body;
+        const MIN_BIRTH_YEAR = parseInt(process.env.SERVER_MIN_BIRTH_YEAR) || 1950;
+        const MAX_BIRTH_YEAR = parseInt(process.env.SERVER_MAX_BIRTH_YEAR) || 2010;
+        
+        console.log('서버: 회원가입 요청 받음:', { email, nickname, birthYear, gender });
 
-        // ⭐⭐ 서버 측 필수 필드 유효성 검사 ⭐⭐
-        // 프로필 이미지 URL과 자기소개(bio)는 선택 사항으로 간주합니다.
-        if (!nickname || !email || !password || !gender || 
+        // ⭐⭐ 서버 측 필수 필드 유효성 검사 (문법 오류 수정) ⭐⭐
+        if (!nickname || !email || !password || !region || !gender || !birthYear ||
             minAgeGroup === undefined || minAgeGroup === null || minAgeGroup === '' || 
-            maxAgeGroup === undefined || maxAgeGroup === null || maxAgeGroup === '') 
-        {
+            maxAgeGroup === undefined || maxAgeGroup === null || maxAgeGroup === '') {
             console.warn("서버: 필수 회원가입 필드 누락.");
-            return res.status(400).json({ success: false, message: '닉네임, 이메일, 비밀번호, 성별, 나이대는 필수 입력 항목입니다.' });
+            return res.status(400).json({ 
+                success: false, 
+                message: '닉네임, 이메일, 비밀번호, 지역, 성별, 출생연도, 관심 나이대는 필수 입력 항목입니다.' 
+            });
         }
 
+        // 비밀번호 길이 검증
         if (password.length < 6) {
             console.warn("서버: 비밀번호가 너무 짧습니다.");
-            return res.status(400).json({ success: false, message: '비밀번호는 6자 이상이어야 합니다.' });
+            return res.status(400).json({ 
+                success: false, 
+                message: '비밀번호는 6자 이상이어야 합니다.' 
+            });
         }
 
+        // ⭐⭐⭐ nickname 검증: 2글자 이상 ⭐⭐⭐
+        if (!nickname || nickname.trim().length < 2) {
+            console.warn("서버: 닉네임이 2글자 미만입니다:", nickname);
+            return res.status(400).json({
+                success: false,  
+                message: '닉네임은 2글자 이상이어야 합니다.' 
+            });
+        }
+
+        // 닉네임 최대 길이 제한 (추가)
+        if (nickname.trim().length > 20) {
+            console.warn("서버: 닉네임이 20글자를 초과합니다:", nickname);
+            return res.status(400).json({
+                success: false,  
+                message: '닉네임은 20글자 이하여야 합니다.' 
+            });
+        }
+  
+        // ⭐⭐⭐ birthYear 검증: 범위 내 숫자 ⭐⭐⭐
+        const birthYearNum = parseInt(birthYear);
+  
+        if (!birthYear || isNaN(birthYearNum)) {
+            console.warn("서버: 유효하지 않은 출생연도:", birthYear);
+            return res.status(400).json({
+                success: false,
+                message: '올바른 출생연도를 입력해주세요.' 
+            });
+        } 
+  
+        if (birthYearNum < MIN_BIRTH_YEAR || birthYearNum > MAX_BIRTH_YEAR) {
+            console.warn(`서버: 출생연도가 범위를 벗어남: ${birthYearNum} (범위: ${MIN_BIRTH_YEAR}-${MAX_BIRTH_YEAR})`);
+            return res.status(400).json({ 
+                success: false, 
+                message: `출생연도는 ${MIN_BIRTH_YEAR}년 이상 ${MAX_BIRTH_YEAR}년 이하여야 합니다.`
+            });
+        }
+
+        // 나이대 검증 (개선)
         const minVal = parseInt(minAgeGroup.split('-')[0]);
         const maxVal = parseInt(maxAgeGroup.split('-')[0]);
-        if (minVal > maxVal) {
-            console.warn("서버: 최소 나이대가 최대 나이대보다 큽니다.");
-            return res.status(400).json({ success: false, message: '최소 나이대는 최대 나이대보다 클 수 없습니다.' });
-        }
-        
-        // 이메일 형식 검사 (선택 사항, 클라이언트에서도 했지만 서버에서 다시 하는 것이 좋음)
-        if (!/^[\w.-]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
-             console.warn("서버: 유효하지 않은 이메일 형식입니다.");
-             return res.status(400).json({ success: false, message: '유효하지 않은 이메일 주소 형식입니다.' });
+        if (isNaN(minVal) || isNaN(maxVal)) {
+            console.warn("서버: 유효하지 않은 나이대 형식:", { minAgeGroup, maxAgeGroup });
+            return res.status(400).json({ 
+                success: false, 
+                message: '올바른 나이대 형식을 선택해주세요.' 
+            });
         }
 
-        // Firebase Auth를 이용한 사용자 생성 (여기서는 admin SDK 사용)
+        if (minVal > maxVal) {
+            console.warn("서버: 최소 나이대가 최대 나이대보다 큽니다:", { minVal, maxVal });
+            return res.status(400).json({ 
+                success: false, 
+                message: '최소 나이대는 최대 나이대보다 클 수 없습니다.' 
+            });
+        }
+        
+        // 이메일 형식 검사 (정규식 개선)
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            console.warn("서버: 유효하지 않은 이메일 형식:", email);
+            return res.status(400).json({ 
+                success: false, 
+                message: '유효하지 않은 이메일 주소 형식입니다.' 
+            });
+        }
+
+        // 성별 검증 (추가)
+        if (!['male', 'female'].includes(gender)) {
+            console.warn("서버: 유효하지 않은 성별:", gender);
+            return res.status(400).json({ 
+                success: false, 
+                message: '올바른 성별을 선택해주세요.' 
+            });
+        }
+
+        // bio 길이 제한 (추가)
+        if (bio && bio.length > 500) {
+            console.warn("서버: 자기소개가 너무 깁니다:", bio.length);
+            return res.status(400).json({ 
+                success: false, 
+                message: '자기소개는 500자 이하여야 합니다.' 
+            });
+        }
+
+        console.log("서버: 모든 검증 통과, Firebase 사용자 생성 시작");
+
+        // Firebase Auth를 이용한 사용자 생성
         const userRecord = await admin.auth().createUser({
-            email: email,
+            email: email.trim(),
             password: password,
-            displayName: nickname,
-            photoURL: profileImgUrl || getDefaultProfileImageUrl(gender) // 기본 이미지 URL 설정
+            displayName: nickname.trim(),
+            photoURL: profileImgUrl || getDefaultProfileImageUrl(gender)
         });
 
         const uid = userRecord.uid;
+        console.log(`서버: Firebase 사용자 생성 성공: ${uid}`);
 
         // Firestore에 사용자 추가 데이터 저장
         await admin.firestore().collection('users').doc(uid).set({
-            nickname: nickname,
-            email: email,
+            nickname: nickname.trim(),
+            email: email.trim(),
+            birthYear: birthYearNum, // 숫자로 저장
+            region: region.trim(),
             gender: gender,
             minAgeGroup: minAgeGroup,
             maxAgeGroup: maxAgeGroup,
-            profileImgUrl: profileImgUrl || getDefaultProfileImageUrl(gender), // 이미지 없으면 기본 이미지
-            bio: bio || '', // 자기소개가 없으면 빈 문자열 저장
+            profileImgUrl: profileImgUrl || getDefaultProfileImageUrl(gender),
+            bio: bio ? bio.trim() : '', // bio가 있으면 trim, 없으면 빈 문자열
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(), // 추가
             friendIds: [],
             friendRequestsSent: [],
             friendRequestsReceived: []
         });
 
         console.log(`서버: 새 사용자 계정 생성 및 Firestore 저장 성공: ${uid}`);
-        return res.status(200).json({ success: true, message: '회원가입 성공!', uid: uid });
+        return res.status(200).json({ 
+            success: true, 
+            message: '회원가입이 완료되었습니다!', 
+            uid: uid 
+        });
 
     } catch (error) {
         console.error("서버: 회원가입 중 오류 발생:", error);
+        
+        // Firebase Auth 에러 코드별 처리
         let errorMessage = '회원가입 중 오류가 발생했습니다.';
+        
         if (error.code === 'auth/email-already-exists') {
             errorMessage = '이미 사용 중인 이메일 주소입니다.';
         } else if (error.code === 'auth/invalid-email') {
             errorMessage = '유효하지 않은 이메일 주소입니다.';
         } else if (error.code === 'auth/weak-password') {
             errorMessage = '비밀번호가 너무 약합니다 (최소 6자).';
+        } else if (error.code === 'auth/invalid-password') {
+            errorMessage = '유효하지 않은 비밀번호입니다.';
+        } else if (error.code === 'auth/invalid-display-name') {
+            errorMessage = '유효하지 않은 닉네임입니다.';
         }
-        return res.status(500).json({ success: false, message: errorMessage, error: error.message });
+        
+        return res.status(500).json({ 
+            success: false, 
+            message: errorMessage, 
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 
@@ -163,7 +290,8 @@ app.post('/api/getBlobSasToken', async (req, res) => {
     console.log("SAS 토큰 생성 요청 받음, 요청 본문:", req.body);
     try {
         const { fileName, contentType } = req.body;
-
+        
+        console.log(`서버: SAS 토큰 요청을 위한 클라이언트 fileName: ${fileName}, Content-Type: ${contentType}`);
         if (!fileName || !contentType) {
             return res.status(400).json({ success: false, message: 'File name and content type are required.' });
         }
@@ -175,7 +303,7 @@ app.post('/api/getBlobSasToken', async (req, res) => {
             startsOn: new Date(new Date().valueOf() - (10 * 1000)), // Start 10 seconds ago
             expiresOn: new Date(new Date().valueOf() + (5 * 60 * 1000)), // Valid for 5 minutes
         };
-
+         console.log(`서버: SAS 토큰 생성에 사용될 blobName: ${sasOptions.blobName}`);        
         const sasToken = generateBlobSASQueryParameters(sasOptions, sharedKeyCredential).toString();
         console.log(`SAS 토큰 생성 성공 - 파일명: ${fileName}, 토큰: ${sasToken.substring(0, 30)}...`); // Truncate token for log
 
@@ -366,7 +494,7 @@ async function deleteCollection(collectionPath, batchSize = 500) {
     }
 }
 
-app.post('/delete-all-data', async (req, res) => {
+app.post('/api/delete-all-data', async (req, res) => {
     try {
         console.log('API call received: /delete-all-data');
 

@@ -25,3 +25,6 @@ out/
 # OS generated files
 .DS_Store # macOS에서 생성되는 폴더 메타데이터 파일
 Thumbs.db # Windows에서 생성되는 썸네일 캐시 파일
+
+# Google Cloud Service Account Credentials
+backend/config/simplechat.json

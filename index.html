@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>심플 채팅</title>
 
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="/HomeLayOut.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
   <link rel="icon" type="image/png" href="img/favicons/favicon-96x96.png" sizes="96x96" />
@@ -29,15 +29,19 @@
         <span class="toggle-password" data-target="auth-password">👁️</span>
       </div>
     </div>
-
-    <div class="input-group hidden" id="signup-password-confirm-group">
+    <div id="remember-me-group" class="remember-me-group">
+      <input type="checkbox" id="remember-me-checkbox">
+      <label for="remember-me-checkbox">이메일/비밀번호 기억하기</label>
+    </div>
+  <div id="signup-fields" class="hidden">
+     <div class="input-group hidden " id="signup-password-confirm-group">
       <div class="password-input-container">
-        <input type="password" id="signup-password-confirm" class="auth-input signup-field" placeholder="비밀번호 확인">
+        <input type="password" id="signup-password-confirm" class="auth-input signup-field" placeholder="비밀번호 (6자 이상)" required>
         <span class="toggle-password" data-target="signup-password-confirm">👁️</span>
       </div>
     </div>
 
-    <div id="signup-fields" class="hidden">
+    
       <div class="input-group">
         <input type="text" id="signup-nickname" class="signup-field" placeholder="닉네임" maxlength="20" required>
       </div>
@@ -89,7 +93,7 @@
       </div>
       <div class="profile-img-upload">
         <label for="signup-profile-image-upload-input" class="upload-label">
-          <img id="signup-profile-img-preview" src="img/default_profile_guest.png" alt="프로필 이미지 미리보기">
+          <img id="signup-profile-img-preview" src="/img/default_profile_guest.png" alt="프로필 이미지 미리보기">
           <span>프로필 이미지 선택</span>
         </label>
         <input type="file" id="signup-profile-image-upload-input" class="signup-field" accept="image/*">
@@ -104,7 +108,7 @@
   </div> </section>
 
 <header class="app-header hidden">
-  <div class="MyProfilediv">
+  <div class="myProfilediv">
     <img id="my-profile-img" src="img/default_profile_guest.png" alt="내 프로필 이미지">
     <span id="my-nickname">닉네임</span>
   </div>
@@ -239,6 +243,8 @@
     </div>
   </div>
 </div>
+
+
 
 <script type="module" src="script.js"></script>
 

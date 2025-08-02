@@ -1,9 +1,9 @@
 // js/allUserDiv.js
 
-import {currentUserUid, currentUserData } from '../src/user-data.js';
+
 import { collection, doc, getDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, onSnapshot, query, where, getDocs,limit, orderBy,FieldPath, startAfter , documentId, endBefore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"; // ⭐ 경로 통일!
 import { auth, db } from '../src/firebase-init.js';
-
+import {currentUserUid, currentUserData } from '../src/user-data.js';
 
 // auth-service.js에서 updateAuthUIForMode를 가져옵니다.
 import { updateAuthUIForMode } from '../src/auth-service.js';
@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
  * 모든 사용자 목록을 표시하고 필터링합니다.
  * @param {Object} filter - 성별, 나이대, 지역 등의 필터 조건
  */
+
 function addLoadMoreButton() {
     if (!userListUl) {
         console.warn("addLoadMoreButton: user-list 요소가 아직 로드되지 않았습니다.");
@@ -105,7 +106,7 @@ export async function filterDisplayUsers(filter = {} ,append = false) {
         console.log(`순환 로직: 맨 처음부터 시작점(${currentRandomStartSeed}) 이전까지 조회합니다.`);
         usersQuery = query(usersRef, orderBy(documentId()), endBefore(currentRandomStartSeed));
     } else if (currentRandomStartSeed) { 
-        // 첫 로드 (lastVisibleUserDoc이 null이고 initialLoadComplete가 false일 때): 무작위 시드 이후부터 시작
+// 첫 로드 (lastVisibleUserDoc이 null이고 initialLoadComplete가 false일 때): 무작위 시드 이후부터 시작
         usersQuery = query(usersRef, orderBy(documentId()), startAfter(currentRandomStartSeed));
     } else { // 예외 상황 (거의 발생 안 함)
         usersQuery = query(usersRef, orderBy(documentId())); // 기본 쿼리
@@ -268,7 +269,7 @@ function applyUserFilters(baseQuery, filter) {
     }
     return currentQuery; // 수정된 쿼리 반환
 }
-async function getProfileImgUrlWithSas(userData, displayProfileImgUrl) {
+/*async function getProfileImgUrlWithSas(userData, displayProfileImgUrl) {
     const response = await fetch('http://localhost:3000/api/getProfileImageUrl', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -288,7 +289,7 @@ async function getProfileImgUrlWithSas(userData, displayProfileImgUrl) {
         // 백엔드에서 실패했더라도 기본 이미지가 이미 할당되어 있음
     }
     return displayProfileImgUrl;
-}
+}*/
 
 // 기존 displayUsers 함수는 clearUserList를 포함하고 있었으므로 별도의 clearUserList는 필요 없습니다.
 // 다만, 사용자 목록의 버튼 액션 업데이트 함수를 명시적으로 export하여 필요할 때 호출할 수 있게 합니다.
@@ -319,3 +320,4 @@ export function updateUserActionButton(targetUid, newButtonHtml) {
         }
     }
 }
+

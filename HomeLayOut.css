@@ -1,15 +1,4 @@
 /* 기본 스타일 */
-/* HomeLayOut.css */
-@import url('.rootCss/base/_utilities.css');
-@import url('.rootCss/base/_buttons.css');
-@import url('.rootCss/layouts/_layout.css');
-@import url('.rootCss/layouts/_sidebar.css');
-@import url('.rootCss/layouts/_main-content.css');
-@import url('.rootCss/components/_auth-form.css');
-@import url('.rootCss/components/_modals.css');
-@import url('.rootCss/components/_profile-upload.css');
-@import url('.rootCss/components/_chat-messages.css');
-@import url('.rootCss/components/_friend-requests.css');
 
 body {
     font-family: 'Arial', sans-serif;
@@ -639,7 +628,7 @@ body {
 
 /* 숨김 클래스 */
 .hidden {
-    display: none !important;
+    display: none ;
 }
 
 /* 반응형 디자인 */
@@ -656,7 +645,7 @@ body {
     }
 
     .app-content {
-        flex-direction: column;
+
         padding: 0 15px;
     }
 

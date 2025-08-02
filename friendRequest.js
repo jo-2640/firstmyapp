@@ -1,8 +1,8 @@
 // friendRequest.js
 
 // script.js에서 필요한 전역 변수와 함수를 임포트합니다.
-import { auth, db, storage } from './src/firebase-init.js'; // Firebase 초기화 모듈에서 import
-import { currentUserUid, currentUserData, currentUserNickname } from './src/user-data.js'; // 사용자 정보 모듈에서 import
+import { auth , db } from './src/firebase-init.js';
+import { currentUserUid, currentUserData } from './src/user-data.js'
 import { getDefaultProfileImage, getAgeGroupLabel, getGenderLabel, getRegionLabel,showToast } from './utils.js';
 import { updateUserActionButton }  from './js/allUserDiv.js';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, onSnapshot } from "firebase/firestore";
@@ -560,3 +560,4 @@ export async function updateFriendRequestBadge() {
         friendRequestBadge.classList.add('hidden');
     }
 }
+

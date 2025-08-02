@@ -2,81 +2,349 @@
 console.log("★★★★ JavaScript 파일이 성공적으로 로드되었습니다! (최상단)");
 
 // --- Firebase SDK 및 서비스 인스턴스 import ---
-import { auth, db, storage } from './src/firebase-init.js'; // Firebase 초기화 모듈에서 import
-
-// --- 사용자 정보 관련 import ---
-import { currentUserUid, currentUserData, currentUserNickname } from './src/user-data.js'; // 사용자 정보 모듈에서 import
-
-// --- 인증 서비스 관련 import ---
-import {
-    handleLogin,
-    handleLogout,
-    updateAuthUIForMode,
-    setupAuthListener,
-    initializeAuthUIElements // Auth UI 요소 초기화 함수 import
-} from './src/auth-service.js'; // 인증 서비스 모듈에서 import
-
-
+import { auth, db, storage } from './src/firebase-init.js';
+// ✅ 최신 모듈 방식에 맞게 Firebase 함수들을 직접 import
+import { createUserWithEmailAndPassword, signOut ,updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
+import { currentUserUid, currentUserData, currentUserNickname } from './src/user-data.js';
+import { handleLogin, handleLogout, updateAuthUIForMode, setupAuthListener, initializeAuthUIElements } from './src/auth-service.js';
+import { LOCAL_STORAGE_KEYS,SERVER_BASE_URL } from './src/constants.js';
+import AppUI from './src/AppUI.js';
 import { filterDisplayUsers } from './js/allUserDiv.js';
 import { updateFriendRequestBadge } from './friendRequest.js';
-import { initializeSignupUI, getSignUpMode, handleSignup, toggleSignUpMode } from './signup.js';
-import { getDefaultProfileImage, showToast, resizeAndOptimizeImg } from './utils.js';
+import { getDefaultProfileImage, showToast, resizeAndOptimizeImg, fetchCurrentYearFromServer, detailedAgeGroups, fetchBirthYearRangeFromServer} from './utils.js';
 import { initializeMyProfileDivUI, clearMyProfileUI } from './js/myProfileDiv.js';
+import { fillSignUpFieldsWithRandomDataTemp } from './js/temp.js';
+
+let minBirthYear = 1980; //임시 변수이나 지우면 안됨~서버값
+let serverCurrentYear = new Date().getFullYear(); //임시변수이나 지우면안됨~ 서버값
+
+// --- 회원가입 모드 관련 변수 및 함수 (signup.js에서 이동) ---
+let isSignUpMode = false;
+
+export function getSignUpMode() {
+    return isSignUpMode;
+}
+
+export function toggleSignUpMode() {
+    isSignUpMode = !isSignUpMode;
+    updateAuthUIForMode(isSignUpMode);
+}
+
+function updateBirthYearDropdownOptions(minBirthYear, currentYear) {
+    const birthYearSelect = AppUI.signupBirthYearSelect;
+    if (!birthYearSelect) {
+        console.error("signup-birth-year 요소를 찾을 수 없습니다 (AppUI).");
+        return;
+    }
+    birthYearSelect.innerHTML = '';
+    const defaultOption = document.createElement('option');
+    defaultOption.value = "";
+    defaultOption.textContent = "출생연도를 선택하세요";
+    defaultOption.disabled = true;
+    defaultOption.selected = true;
+    birthYearSelect.appendChild(defaultOption);
+    for (let year = currentYear; year >= minBirthYear; year--) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        birthYearSelect.appendChild(option);
+    }
+}
+
+function findDetailedAgeGroupByValue(age) {
+    return detailedAgeGroups.find(group => age >= group.min && age <= group.max);
+}
+
+function updateAgeGroupDropdownOptions(dropdownElement, type) {
+    if (!dropdownElement) {
+        console.error(`"${type}" 나이 그룹 드롭다운 요소를 찾을 수 없습니다.`);
+        return;
+    }
+    dropdownElement.innerHTML = '';
+    const defaultOption = document.createElement('option');
+    if (type === 'min') {
+         defaultOption.textContent = '관심있는 최소 나이대를 선택하세요';
+    } else if (type === 'max') {
+        defaultOption.textContent = '관심있는 최대 나이대를 선택하세요';
+    }
+    defaultOption.selected = true;
+    defaultOption.disabled = true;
+    dropdownElement.appendChild(defaultOption);
+    if (type === 'min') {
+        const optionUnder10 = document.createElement('option');
+        optionUnder10.value = '10-under';
+        optionUnder10.textContent = '10대 미만';
+        dropdownElement.appendChild(optionUnder10);
+    }
+
+    detailedAgeGroups.forEach(group => {
+        const option = document.createElement('option');
+        option.value = group.value;
+        option.textContent = group.label;
+        dropdownElement.appendChild(option);
+    });
+
+    if (type === 'max') {
+        const optionPlus60 = document.createElement('option');
+        optionPlus60.value = '60-plus';
+        optionPlus60.textContent = '60대 이상';
+        dropdownElement.appendChild(optionPlus60);
+    }
+}
+
+async function handleSignup(e) {
+    e.preventDefault();
+
+    // ✅ 오류 방지를 위한 필수 DOM 요소 존재 여부 사전 확인
+    const requiredElements = [
+        AppUI.authEmailInput,
+        AppUI.authPasswordInput,
+        AppUI.signupPasswordConfirmInput,
+        AppUI.signupNicknameInput,
+        AppUI.signupBirthYearSelect,
+        AppUI.signupGenderSelect,
+        AppUI.signupRegionSelect,
+        AppUI.signupMinAgeSelect,
+        AppUI.signupMaxAgeSelect
+    ];
+
+    if (requiredElements.some(el => el === null)) {
+        console.error("오류: 필수 회원가입 폼 요소가 DOM에 존재하지 않습니다. HTML ID를 확인하세요.");
+        showToast("회원가입 폼을 불러오는 중 오류가 발생했습니다. 페이지를 새로고침 해주세요.", "error");
+        return;
+    }
+
+    // --- 데이터 추출 ---
+    const email = AppUI.authEmailInput.value;
+    const password = AppUI.authPasswordInput.value;
+    const passwordConfirm = AppUI.signupPasswordConfirmInput.value;
+    const nickname = AppUI.signupNicknameInput.value;
+    const birthYear = parseInt(AppUI.signupBirthYearSelect.value);
+    const gender = AppUI.signupGenderSelect.value;
+    const region = AppUI.signupRegionSelect.value;
+    const bio = AppUI.signupBioTextarea ? AppUI.signupBioTextarea.value : '';
+    const minAgeGroup = AppUI.signupMinAgeSelect.value;
+    const maxAgeGroup = AppUI.signupMaxAgeSelect.value;
+    const profileImageFile = AppUI.profileImageInput && AppUI.profileImageInput.files.length > 0 ? AppUI.profileImageInput.files[0] : null;
+
+    // --- 클라이언트 측 유효성 검사 ---
+    if (!email || !password || !passwordConfirm || !nickname || isNaN(birthYear) || !gender || !region || !minAgeGroup || !maxAgeGroup) {
+        showToast("모든 필수 입력란을 채워주세요!", "error");
+        return;
+    }
+    if (password !== passwordConfirm) {
+        showToast("비밀번호가 일치하지 않습니다!", "error");
+        return;
+    }
+    if (password.length < 6) {
+        showToast("비밀번호는 6자 이상이어야 합니다.", "error");
+        return;
+    }
+    if (nickname.length < 2 || nickname.length > 10) {
+        showToast("닉네임은 2자 이상 10자 이하여야 합니다.", "error");
+        return;
+    }
+
+    const minAgeGroupObj = detailedAgeGroups.find(g => g.value === minAgeGroup);
+    const maxAgeGroupObj = detailedAgeGroups.find(g => g.value === maxAgeGroup);
+    let minAge = 0;
+    let maxAge = 100;
+    if (minAgeGroup === '10-under') { minAge = 0; }
+    else if (minAgeGroup === '60-plus') { minAge = 60; }
+    else if (minAgeGroupObj) { minAge = minAgeGroupObj.min; }
+    if (maxAgeGroup === '10-under') { maxAge = 10; }
+    else if (maxAgeGroup === '60-plus') { maxAge = 100; }
+    else if (maxAgeGroupObj) { maxAge = maxAgeGroupObj.max; }
+
+    if (minAge > maxAge) {
+        showToast("최소 나이 그룹은 최대 나이 그룹보다 클 수 없습니다.", "error");
+        return;
+    }
+    const currentYear = serverCurrentYear;
+    if (birthYear < minBirthYear || birthYear > currentYear) {
+        return showToast("유효하지 않은 출생 연도입니다.", "error");
+    }
+
+    showToast("회원가입 처리 중...", "info");
+
+    try {
+        let uid;
+        let profileImgUrl = '';
+
+        // ✅ 1단계: Firebase 사용자 계정 생성 (서버 API 호출)
+        showToast("사용자 계정 생성 중...", "info");
+        const userCreationResponse = await fetch(`${SERVER_BASE_URL}/api/signup/create-user`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, gender, nickname })
+        });
+
+        const userCreationResult = await userCreationResponse.json();
+        if (!userCreationResponse.ok) {
+            throw new Error(userCreationResult.message || "계정 생성에 실패했습니다.");
+        }
+        uid = userCreationResult.uid;
+        showToast("계정 생성 성공! 이미지 업로드 준비 중.", "success");
+
+        // ✅ 2단계: 프로필 이미지 업로드 (서버 API 호출 및 Azure 업로드)
+        if (profileImageFile) {
+            showToast("프로필 이미지 최적화 및 업로드 준비 중...", "info");
+            const optimizedResult = await resizeAndOptimizeImg(profileImageFile, 100, 100, profileImageFile.type, 0.8);
+            if (!optimizedResult || !optimizedResult.blob) {
+                 throw new Error("이미지 최적화 실패.");
+            }
+
+            const fileExtension = optimizedResult.blob.type.split('/').pop() || 'jpeg';
+            const uniqueFileName = `profile_${uid}_${Date.now()}.${fileExtension}`;
+            const blobPath = `users/${uid}/${uniqueFileName}`; // Azure에 저장될 최종 경로
+
+            const sasResponse = await fetch(`${SERVER_BASE_URL}/api/signup/get-profile-sas-token`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                        uid,
+                        blobPath: blobPath, // ⭐ 수정: 서버에 blobPath를 전달하여 토큰 생성 요청
+                        contentType: optimizedResult.blob.type
+                  })
+            });
+
+            const sasData = await sasResponse.json();
+            if (!sasResponse.ok || !sasData.sasToken || !sasData.blobUrl) {
+                throw new Error("SAS 토큰을 받지 못했습니다.");
+            }
+            console.log(`${sasData.blobUrl}?${sasData.sasToken} 입니다`);
+            const isUploadSuccess = await uploadFileToAzureWithSasToken(`${sasData.blobUrl}?${sasData.sasToken}`, optimizedResult.blob, optimizedResult.blob.type);
+            if (!isUploadSuccess) {
+                throw new Error("이미지 업로드 실패.");
+            }
+            profileImgUrl = sasData.blobUrl;
+            showToast("이미지 업로드 성공!", "success");
+        } else {
+            profileImgUrl = getDefaultProfileImage(gender);
+            showToast("기본 프로필 이미지를 사용합니다.", "info");
+        }
+
+        // ✅ 3단계: Firestore에 최종 정보 저장 (서버 API 호출)
+        showToast("최종 프로필 정보 저장 중...", "info");
+        const finalizeResponse = await fetch(`${SERVER_BASE_URL}/api/signup/finalize`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                uid,
+                nickname,
+                birthYear,
+                region,
+                gender,
+                minAgeGroup,
+                maxAgeGroup,
+                bio,
+                profileImgUrl
+            })
+        });
+
+        const finalizeResult = await finalizeResponse.json();
+        if (!finalizeResponse.ok) {
+            throw new Error(finalizeResult.message || "최종 프로필 저장에 실패했습니다.");
+        }
+
+        showToast("회원가입이 완료되었습니다!", "success");
+
+        // 성공 시 폼 초기화 및 로그인
+        await handleLogin(email, password);
+        if (AppUI.authEmailInput) AppUI.authEmailInput.value = '';
+        // ... (나머지 폼 초기화 로직) ...
+        toggleSignUpMode();
+
+    } catch (error) {
+        console.error("회원가입 오류:", error);
+        let errorMessage = "회원가입 중 오류가 발생했습니다. 다시 시도해주세요.";
+        if (error.message.includes('email-already-in-use')) {
+            errorMessage = "이미 사용 중인 이메일 주소입니다.";
+        } else if (error.message.includes('invalid-email')) {
+            errorMessage = "유효하지 않은 이메일 주소입니다.";
+        } else if (error.message.includes('weak-password')) {
+            errorMessage = "비밀번호는 6자 이상이어야 합니다.";
+        } else {
+             errorMessage = error.message;
+        }
+        showToast(errorMessage, "error");
+    }
+}
+
+// ... (나머지 코드) ...
+
+// Azure에 파일을 직접 업로드하는 함수 (기존 코드)
+async function uploadFileToAzureWithSasToken(uploadUrl, file, fileType) {
+    try {
+        console.log("Azure에 파일 직접 업로드 시작:", file.name);
+        const response = await fetch(uploadUrl, {
+            method: 'PUT',
+            body: file,
+            headers: {
+                'x-ms-blob-type': 'BlockBlob',
+                'Content-Type': fileType
+            }
+        });
+        if (!response.ok) {
+            console.error("Azure 업로드 실패:", response.statusText);
+            return false;
+        }
+        console.log("Azure 업로드 성공.");
+        return true;
+    } catch (error) {
+        console.error("Azure 업로드 중 오류 발생:", error);
+        return false;
+    }
+}
+// Azure에 파일을 업로드하는 클라이언트 측 함수
 
 
+/////////////////////////////////메인함수부분
 
 
-// 💡💡💡 스크립트 중복 실행 방지 플래그
-if (window.__APP_SCRIPT_INITIALIZED__) {
-    console.warn("script.js가 이미 초기화되었습니다. 추가 초기화를 건너갑니다.");
-} else {
-    window.__APP_SCRIPT_INITIALIZED__ = true;
     console.log("script.js가 초기화됩니다.");
 
-    // --- Firebase 앱 초기화 및 persistence 설정은 이제 src/firebase-init.js에서 처리 ---
+    AppUI.initialize();
+    console.log("AppUI 객체 초기화 완료:", AppUI);
 
-    // ⭐⭐⭐ 중요: Auth UI 관련 요소 초기화를 먼저 수행합니다. ⭐⭐⭐
-    // auth-service.js의 setupAuthListener에서 이 요소들을 사용하기 때문입니다.
     initializeAuthUIElements();
-
-    // ⭐ Firebase 인증 상태 변경 리스너를 설정합니다. (auth-service.js에서 가져옴)
     setupAuthListener();
+//////////////////////////////////////////////
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const birthYearRange = await fetchBirthYearRangeFromServer();
+            updateBirthYearDropdownOptions(birthYearRange.minBirthYear, birthYearRange.maxBirthYear);
+        } catch (error) {
+            console.error(`[script.js] 연도 정보를 가져오는데 실패했습니다: ${error.message}`);
+            showToast(`연도 정보를 가져올 수 없습니다: ${error.message}`, 'error');
+            if (AppUI.signupBirthYearSelect) {
+                AppUI.signupBirthYearSelect.disabled = true;
+                AppUI.signupBirthYearSelect.innerHTML = '<option value="">연도 불러오기 실패</option>';
+            }
+        }
 
+        updateAgeGroupDropdownOptions(AppUI.signupMinAgeSelect, 'min');
+        updateAgeGroupDropdownOptions(AppUI.signupMaxAgeSelect, 'max');
 
-    // 💡💡💡 DOMContentLoaded 이벤트 리스너
-    document.addEventListener('DOMContentLoaded', () => {
-        initializeSignupUI(); // signup.js에서 가져온 함수
-
-        const deleteAllDataBtn = document.getElementById('deleteAllDataBtn');
-        const btnLogout = document.getElementById('btnLogout');
-        const authSubmitBtn = document.getElementById('auth-submit-btn');
-        const authSwitchBtn = document.getElementById('auth-switch-btn');
-        const profileImageInput = document.getElementById('signup-profile-image-upload-input');
-        const profileImagePreview = document.getElementById('signup-profile-img-preview');
-
-        // deleteAllDataBtn 이벤트 리스너
-        if (deleteAllDataBtn) {
-            deleteAllDataBtn.addEventListener('click', async () => {
+        if (AppUI.deleteAllDataBtn) {
+            AppUI.deleteAllDataBtn.addEventListener('click', async () => {
                 if (!confirm('경고: 정말로 모든 사용자 계정과 Firestore 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다!')) return;
                 if (!confirm('최종 확인: 모든 데이터가 영구적으로 삭제됩니다. 계속하시겠습니까?')) return;
-
                 showToast('모든 데이터 삭제 요청 중...', 'info');
-
                 try {
                     const response = await fetch('http://localhost:3000/api/delete-all-data', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' }
                     });
                     const data = await response.json();
-
                     if (response.ok && data.success) {
                         showToast(data.message, 'success');
                         console.log('데이터 삭제 성공:', data.message);
-                        const auth = firebase.auth(); // 또는 getAuth() 등으로 auth 인스턴스를 가져오세요.
-
-                        if (auth.currentUser) { // 현재 로그인된 사용자가 있다면
-                             await auth.signOut(); // 명시적으로 로그아웃
-                             console.log("[Auth Service] 모든 데이터 삭제 후 Firebase 세션 로그아웃 완료.");
+                        if (auth.currentUser) {
+                            // ✅ 최신 모듈 방식으로 로그아웃 함수 호출
+                            await signOut(auth);
+                            console.log("[Auth Service] 모든 데이터 삭제 후 Firebase 세션 로그아웃 완료.");
                         }
                     } else {
                         const errorMessage = data.message || '데이터 삭제 실패';
@@ -92,135 +360,164 @@ if (window.__APP_SCRIPT_INITIALIZED__) {
             console.error("오류: ID 'deleteAllDataBtn'을 가진 요소를 찾을 수 없습니다.");
         }
 
-        // btnLogout 이벤트 리스너
-        if (btnLogout) {
-            btnLogout.addEventListener('click', handleLogout); // auth-service.js에서 가져온 함수
+        if (AppUI.btnLogout) {
+            AppUI.btnLogout.addEventListener('click', handleLogout);
         } else {
             console.error("btnLogout을 찾을 수 없습니다! HTML ID를 확인하세요.");
         }
 
-        // authSubmitBtn 이벤트 리스너
-        if (authSubmitBtn) {
-            authSubmitBtn.addEventListener('click', async (e) => {
+        if (AppUI.authSubmitBtn) {
+            AppUI.authSubmitBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                const currentModeIsSignUp = getSignUpMode(); // signup.js에서 가져온 함수
-
+                const currentModeIsSignUp = getSignUpMode();
                 console.log(`authSubmitBtn 클릭됨. 현재 모드: ${currentModeIsSignUp ? '회원가입' : '로그인'}`);
-
-                // 버튼 비활성화 및 로딩 상태 설정
-                authSubmitBtn.disabled = true;
-                const originalText = authSubmitBtn.textContent;
-                authSubmitBtn.textContent = currentModeIsSignUp ? '가입 중...' : '로그인 중...';
-
+                AppUI.authSubmitBtn.disabled = true;
+                const originalText = AppUI.authSubmitBtn.textContent;
+                AppUI.authSubmitBtn.textContent = currentModeIsSignUp ? '가입 중...' : '로그인 중...';
                 try {
                     if (currentModeIsSignUp) {
-                        await handleSignup(e); // signup.js에서 가져온 함수
+                        await handleSignup(e);
                     } else {
-                        await handleLogin(); // auth-service.js에서 가져온 함수
+                        await handleLogin();
                     }
                 } catch (error) {
                     console.error("인증 처리 중 오류 발생:", error);
                 } finally {
-                    // 버튼 재활성화 및 원래 텍스트 복원
-                    authSubmitBtn.disabled = false;
-                    authSubmitBtn.textContent = originalText;
+                    AppUI.authSubmitBtn.disabled = false;
+                    AppUI.authSubmitBtn.textContent = originalText;
                 }
             });
         } else {
             console.error("authSubmitBtn을 찾을 수 없습니다! HTML ID를 확인하세요.");
         }
 
-        // authSwitchBtn 이벤트 리스너
-        if (authSwitchBtn) {
-            authSwitchBtn.addEventListener('click', () => {
-                toggleSignUpMode(); // signup.js에서 가져온 함수
+        if (AppUI.authSwitchBtn) {
+            AppUI.authSwitchBtn.addEventListener('click', () => {
+                toggleSignUpMode();
             });
         } else {
             console.error("authSwitchBtn을 찾을 수 없습니다! HTML ID를 확인하세요.");
         }
 
-        // 프로필 이미지 미리보기 이벤트 리스너 (기존과 동일)
-        if (profileImageInput && profileImagePreview) {
-            profileImageInput.addEventListener('change', async (e) => {
+        if (AppUI.signupGenderSelect && AppUI.profileImageInput && AppUI.profileImagePreview) {
+            AppUI.signupGenderSelect.addEventListener('change', () => {
+                const selectedGender = AppUI.signupGenderSelect.value;
+                if (AppUI.profileImageInput.files.length === 0) {
+                    AppUI.profileImagePreview.src = getDefaultProfileImage(selectedGender);
+                }
+            });
+        }
+
+        if (AppUI.signupMinAgeSelect && AppUI.signupMaxAgeSelect) {
+            AppUI.signupMinAgeSelect.addEventListener('change', () => {
+                const minSelectedValue = AppUI.signupMinAgeSelect.value;
+                const minIndex = detailedAgeGroups.findIndex(g => g.value === minSelectedValue);
+                let maxSelectedValue = AppUI.signupMaxAgeSelect.value;
+                let currentMaxIndex = detailedAgeGroups.findIndex(g => g.value === maxSelectedValue);
+                if (minSelectedValue === '10-under') {
+                    AppUI.signupMaxAgeSelect.value = '10-under';
+                } else if (minSelectedValue === '60-plus') {
+                    AppUI.signupMaxAgeSelect.value = '60-plus';
+                } else {
+                    if (maxSelectedValue === '10-under' || maxSelectedValue === '60-plus' || (currentMaxIndex !== -1 && minIndex !== -1 && currentMaxIndex < minIndex)) {
+                        AppUI.signupMaxAgeSelect.value = minSelectedValue;
+                    }
+                }
+            });
+
+            AppUI.signupMaxAgeSelect.addEventListener('change', () => {
+                const maxSelectedValue = AppUI.signupMaxAgeSelect.value;
+                const maxIndex = detailedAgeGroups.findIndex(g => g.value === maxSelectedValue);
+                let minSelectedValue = AppUI.signupMinAgeSelect.value;
+                let currentMinIndex = detailedAgeGroups.findIndex(g => g.value === minSelectedValue);
+
+                if (maxSelectedValue === '10-under') {
+                    AppUI.signupMinAgeSelect.value = '10-under';
+                } else if (maxSelectedValue === '60-plus') {
+                    AppUI.signupMinAgeSelect.value = '60-plus';
+                } else {
+                    if (minSelectedValue === '10-under' || minSelectedValue === '60-plus' || (currentMinIndex !== -1 && maxIndex !== -1 && currentMinIndex > maxIndex)) {
+                        AppUI.signupMinAgeSelect.value = maxSelectedValue;
+                    }
+                }
+            });
+        }
+
+        if (AppUI.profileImageInput && AppUI.profileImagePreview) {
+            AppUI.profileImageInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
 
-                if (file) {
-                    console.log("Change 이벤트 발생. 선택된 파일:", file.name, "타입:", file.type, "크기:", file.size);
+                // 이전 미리보기 URL이 있다면 메모리에서 해제하고, 이벤트 리스너를 정리합니다.
+                const existingObjectURL = AppUI.profileImagePreview.src;
+                if (existingObjectURL && existingObjectURL.startsWith('blob:')) {
+                    URL.revokeObjectURL(existingObjectURL);
+                    AppUI.profileImagePreview.removeAttribute('src'); // 무한 루프 방지를 위해 src 제거
+                    console.log("기존 Object URL 해제 및 src 제거 완료.");
+                    
+                }
+                AppUI.profileImagePreview.onload = null;
+                AppUI.profileImagePreview.onerror = null;
 
+                if (file) {
+                    console.log("Change event occurred. Selected file:", file.name, "Type:", file.type, "Size:", file.size);
                     if (!file.type.startsWith('image/')) {
-                        showToast("이미지 파일만 선택해주세요.", "error");
-                        profileImagePreview.src = '';
-                        profileImagePreview.style.display = 'none';
+                        showToast("Please select an image file.", "error");
+                        AppUI.profileImagePreview.removeAttribute('src');
+                        AppUI.profileImagePreview.style.display = 'none';
                         return;
                     }
 
-                    showToast("이미지 미리보기 생성 중...", "info");
+                    showToast("Generating image preview...", "info");
 
-                    try {
-                        const result = await resizeAndOptimizeImg(file, 200, 200, 'image/jpeg', 0.8);
+                    const objectURL = URL.createObjectURL(file);
+                    AppUI.profileImagePreview.style.display = 'block';
 
-                        if (result && result.blob) {
-                            const resizedBlob = result.blob;
-                            console.log("resizeAndOptimizeImg 반환된 Blob:", "타입:", resizedBlob.type, "크기:", resizedBlob.size);
+                    const onloadHandler = () => {
+                        console.log("Preview image loaded and Object URL revoked.");
 
-                            const objectURL = URL.createObjectURL(resizedBlob);
+                    };
 
-                            profileImagePreview.style.display = 'block';
-                            profileImagePreview.src = '';
+                    const onerrorHandler = (err) => {
+                        console.error("프리뷰 이미지를 로드할수없습니다. 다시 선택하세요", err);
+                        showToast("Could not load preview image. Please select the file again.", "error");
+                        AppUI.profileImagePreview.removeAttribute('src'); // 무한 루프 방지를 위해 src 제거
+                        AppUI.profileImagePreview.style.display = 'none';
+                        URL.revokeObjectURL(objectURL);
+                    };
 
-                            profileImagePreview.onload = () => {
-                                console.log("미리보기 이미지 로드 완료 및 Object URL 해제됨.");
-                                URL.revokeObjectURL(objectURL);
-                            };
-                            profileImagePreview.onerror = (err) => {
-                                console.error("미리보기 이미지 로드 실패!", err);
-                                showToast("미리보기 이미지를 로드할 수 없습니다. 파일을 다시 선택해주세요.", "error");
-                                profileImagePreview.src = '';
-                                profileImagePreview.style.display = 'none';
-                                URL.revokeObjectURL(objectURL);
-                            };
+                    AppUI.profileImagePreview.onload = onloadHandler;
+                    AppUI.profileImagePreview.onerror = onerrorHandler;
 
-                            profileImagePreview.src = objectURL;
-                            console.log("미리보기 Object URL 생성됨:", objectURL);
-                            showToast("이미지 미리보기 준비 완료!", "success");
+                    AppUI.profileImagePreview.src = objectURL;
+                    console.log("Preview Object URL created:", objectURL);
+                    showToast("Image preview ready!", "success");
 
-                        } else {
-                            console.error("resizeAndOptimizeImg가 유효한 Blob을 반환하지 못했습니다.");
-                            showToast("이미지 리사이징에 실패했습니다. 유효한 이미지를 선택해주세요.", "error");
-                            profileImagePreview.src = '';
-                            profileImagePreview.style.display = 'none';
-                        }
-                    } catch (error) {
-                        console.error("미리보기 이미지 처리 오류 (catch 블록):", error);
-                        showToast(`이미지 미리보기 처리 중 오류 발생: ${error.message}`, "error");
-                        profileImagePreview.src = '';
-                        profileImagePreview.style.display = 'none';
-                    }
                 } else {
-                    profileImagePreview.src = '';
-                    profileImagePreview.style.display = 'none';
-                    showToast("선택된 파일이 없습니다.", "info");
+                    AppUI.profileImagePreview.removeAttribute('src');
+                    AppUI.profileImagePreview.style.display = 'block';
+                    showToast("No file selected.", "info");
                 }
             });
         } else {
-            console.error("signup.js:", "프로필 이미지 input 또는 미리보기 요소를 DOM에서 찾을 수 없습니다. HTML ID를 다시 확인하세요!");
+            console.error("script.js:", "Profile image input or preview element not found in DOM. Check HTML IDs!");
         }
-        // ⭐⭐ 비밀번호 표시/숨기기 기능 추가 ⭐⭐
-        document.querySelectorAll('.toggle-password').forEach(toggle => {
-                    toggle.addEventListener('click', () => {
-                        const targetId = toggle.dataset.target;
-                        const passwordInput = document.getElementById(targetId);
-                        if (passwordInput) {
-                            if (passwordInput.type === 'password') {
-                                passwordInput.type = 'text';
-                                toggle.textContent = '🔒'; // 또는 '🙈'
-                            } else {
-                                passwordInput.type = 'password';
-                                toggle.textContent = '👁️';
-                            }
-                        }
-                    });
-        });
-    }); // DOMContentLoaded 이벤트 리스너 끝
 
-} // window.__APP_SCRIPT_INITIALIZED__ 블록 끝
+
+
+
+        document.querySelectorAll('.toggle-password').forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                const targetId = toggle.dataset.target;
+                const passwordInput = document.getElementById(targetId);
+                if (passwordInput) {
+                    if (passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                        toggle.textContent = '🔒';
+                    } else {
+                        passwordInput.type = 'password';
+                        toggle.textContent = '👁️';
+                    }
+                }
+            });
+        });
+    });

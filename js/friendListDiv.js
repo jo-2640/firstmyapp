@@ -1,5 +1,5 @@
 // js/friendListDiv.js
-
+*
 import { db, currentUserUid, showToast } from '../script.js';
 import { getAgeGroupLabel, getGenderLabel, getRegionLabel } from '../utils.js';
 import { doc, getDoc, onSnapshot, runTransaction, arrayRemove } from "firebase/firestore"; // CDN URL 대신 npm 패키지 이름 사용
@@ -162,3 +162,5 @@ export async function deleteFriend(targetUid, targetNickname) {
         showToast("친구 삭제에 실패했습니다: " + error.message, "error");
     }
 }
+
+*/

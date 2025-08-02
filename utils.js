@@ -1,5 +1,7 @@
 // utils.js
 // 이 파일은 여러 모듈에서 공통적으로 사용되는 유틸리티 함수들을 모아놓습니다.
+const NODE_SERVER_URL = 'http://localhost:3000';
+
 export function showToast(message, type = 'info') {
     const toast = document.querySelector('.toast-notification');
     if (!toast) {
@@ -11,6 +13,13 @@ export function showToast(message, type = 'info') {
     setTimeout(() => {
         toast.className = 'toast-notification';
     }, 3000);
+}
+// 출생 연도를 기반으로 사용자의 연령대 레이블을 반환합니다.
+// 이 함수는 주로 프로필 표시 등에서 사용될 때, 저장된 'value'에 해당하는 상세 레이블을 반환합니다.
+export function getAgeGroupLabel(ageGroupValue) {
+    const group = detailedAgeGroups.find(g => g.value === ageGroupValue);
+    // 'label' 속성에는 "20대 초반 (20-23세)"와 같이 상세 정보가 포함됩니다.
+    return group ? group.label : '나이 정보 없음';
 }
 
 // 성별 값을 한국어 레이블로 변환합니다.
@@ -34,7 +43,7 @@ export function getRegionLabel(region) {
         case 'sejong': return '세종';
         case 'gangwon': return '강원';
         case 'chungbuk': return '충북';
-        case 'chungnam': '충남';
+        case 'chungnam': return '충남';
         case 'jeonbuk': return '전북';
         case 'jeonnam': return '전남';
         case 'gyeongbuk': return '경북';
@@ -54,14 +63,6 @@ export function getDefaultProfileImage(gender) {
         return 'img/default_profile_guest.png';
     }
 }
-// 출생 연도를 기반으로 사용자의 연령대 레이블을 반환합니다.
-// 이 함수는 주로 프로필 표시 등에서 사용될 때, 저장된 'value'에 해당하는 상세 레이블을 반환합니다.
-export function getAgeGroupLabel(ageGroupValue) {
-    const group = detailedAgeGroups.find(g => g.value === ageGroupValue);
-    // 'label' 속성에는 "20대 초반 (20-23세)"와 같이 상세 정보가 포함됩니다.
-    return group ? group.label : '나이 정보 없음';
-}
-
 
 // 모든 나이대 그룹 정보 (baseLabel, min, max, label 포함)
 // 'label' 속성에는 "20대 초반 (20-23세)"와 같이 상세 정보가 포함됩니다.
@@ -114,77 +115,61 @@ export function getAgeGroupOptionLabel(group, type) {
  * @returns {Promise<{blob: Blob, name: string, type: string}>} 리사이징된 이미지의 Blob 객체와 원본 파일명/타입
  * @throws {Error} 이미지 로드 또는 변환 실패 시
  */
-const NODE_SERVER_URL = 'http://localhost:3000';
 
-export function resizeAndOptimizeImg(file, maxWidth, maxHeight, type = 'image/jpeg', quality = 0.8) {
-    return new Promise((resolve, reject) => {
-        if (!file || !file.type.startsWith('image/')) {
-            return reject(new Error('유효한 이미지 파일이 아닙니다.'));
-        }
+/// utils/imageProcessor.js
+ // ... (기존 코드) ...
 
-        const reader = new FileReader();
-        reader.readAsDataURL(file); // 파일을 Data URL로 읽기
+ /**
+  * 이미지를 지정된 최대 너비/높이로 리사이징하고 Blob 객체로 반환합니다.
+  * @param {File} file 원본 이미지 파일 객체
+  * @param {number} maxWidth 최대 너비
+  * @param {number} maxHeight 최대 높이
+  * @param {string} type 변환할 이미지의 MIME 타입 (예: 'image/jpeg', 'image/png')
+  * @param {number} quality 압축 품질 (0~1)
+  * @returns {Promise<{blob: Blob, name: string, type: string}>} 리사이징된 이미지의 Blob 객체와 원본 파일명/타입
+  */
+ export async function resizeAndOptimizeImg(file, maxWidth, maxHeight, type, quality) {
+     return new Promise(async (resolve) => {
+         try {
+             const imageBitmap = await createImageBitmap(file);
 
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result; // Data URL을 이미지 src로 설정
+             let width = imageBitmap.width;
+             let height = imageBitmap.height;
 
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
+             if (width > height) {
+                 if (width > maxWidth) {
+                     height *= maxWidth / width;
+                     width = maxWidth;
+                 }
+             } else {
+                 if (height > maxHeight) {
+                     width *= maxHeight / height;
+                     height = maxHeight;
+                 }
+             }
 
-                // 이미지 비율을 유지하면서 최대 너비/높이에 맞게 조정
-                if (width > maxWidth || height > maxHeight) {
-                    const aspectRatio = width / height;
-                    if (width > height) { // 가로가 더 길면 너비 기준으로
-                        width = maxWidth;
-                        height = maxWidth / aspectRatio;
-                    } else { // 세로가 더 길거나 같으면 높이 기준으로
-                        height = maxHeight;
-                        width = maxHeight * aspectRatio;
-                    }
-                }
+             const offscreenCanvas = new OffscreenCanvas(Math.round(width), Math.round(height));
+             const ctx = offscreenCanvas.getContext('2d');
 
-                // 원본 이미지가 이미 maxWidth, maxHeight보다 작다면 리사이징 없이 원본 크기 유지
-                // 이 부분을 추가하여 작은 이미지가 너무 작게 리사이즈되는 것을 방지하거나,
-                // 리사이징 로직이 원본 크기를 해치지 않도록 합니다.
-                // 현재 코드는 이미 작다면 원본 크기를 유지합니다.
-                // canvas.width = width;
-                // canvas.height = height;
+             if (ctx === null) {
+                 throw new Error("OffscreenCanvas 2D 컨텍스트를 얻지 못했습니다.");
+             }
 
-                // 이미지를 중앙에 배치하고 남는 공간이 있다면 투명하게 처리
-                // 또는 이미지를 캔버스에 꽉 채우도록 설정 (현재 로직과 동일)
-                canvas.width = Math.round(width); // 소수점 제거
-                canvas.height = Math.round(height); // 소수점 제거
+             ctx.drawImage(imageBitmap, 0, 0, Math.round(width), Math.round(height));
 
-
-                const ctx = canvas.getContext('2d');
-                // 리사이징 시 이미지가 흐릿해지는 것을 방지 (High-quality scaling)
-                ctx.imageSmoothingEnabled = true;
-                ctx.imageSmoothingQuality = "high";
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height); // 캔버스에 이미지 그리기
-
-                // 리사이징된 이미지를 Blob으로 변환
-                canvas.toBlob((blob) => {
-                    if (blob) {
-                        // Blob과 함께 원본 파일명, 타입을 객체로 반환
-                        resolve({ blob: blob, name: file.name, type: file.type });
-                    } else {
-                        reject(new Error('Canvas to Blob 변환 실패: 브라우저 지원 문제 또는 내부 오류.'));
-                    }
-                }, type, quality); // MIME 타입과 품질 설정
-            };
-            img.onerror = (error) => {
-                reject(new Error('이미지 로드 실패: ' + error.message));
-            };
-        };
-        reader.onerror = (error) => {
-            reject(new Error('파일 읽기 실패: ' + error.message));
-        };
-    });
-}
-
+             // Blob으로 변환할 때, 인자로 받은 'type'과 'quality'를 사용하도록 수정
+             const blob = await offscreenCanvas.convertToBlob({
+                 type: type, // ★ 인자로 받은 타입을 사용 ★
+                 quality: quality
+             });
+             // 반환 시에도 변환된 Blob의 실제 타입과 원본 파일명을 함께 반환
+             resolve({ blob, name: file.name, type: blob.type });
+         } catch (error) {
+             console.error("이미지 리사이징 및 최적화 오류:", error);
+             resolve(null);
+         }
+     });
+ }
 export async function uploadProfileImageToAzure(file, userId) {
     if (!userId) {
         showToast("사용자 ID가 없어 프로필 이미지를 업로드할 수 없습니다.", "error");
@@ -326,16 +311,17 @@ export function getRandomBirthYear(oldestBirthYear, youngestBirthYear) {
     // 공식: Math.floor(Math.random() * (총 범위 크기)) + 범위의 시작 값
     return Math.floor(Math.random() * (youngestBirthYear - oldestBirthYear + 1)) + oldestBirthYear;
 }
+
+//서버로부터 현재 연도를 가져오는 함수
 export async function fetchCurrentYearFromServer() {
     try {
-        // 1. 서버의 특정 API 엔드포인트로 요청을 보냅니다.
-        //    'http://your-backend-api.com/api/current-year'는 실제 백엔드 주소와 경로로 대체해야 합니다.
+     
 
-        const response = await fetch('http://localhost:3000/api/current-year');
+        const response = await fetch(`${NODE_SERVER_URL}/api/current-year`);
         // 2. 응답이 성공적인지 확인합니다 (HTTP 상태 코드 200번대).
         if (!response.ok) {
             // 응답이 실패하면 오류를 던집니다.
-            throw new Error(`서버 오류: ${response.status} ${response.statusText}`);
+             throw new Error(`서버 오류: ${response.status} ${response.statusText}`);
         }
 
         // 3. 서버 응답을 JSON 형태로 파싱합니다.
@@ -343,10 +329,10 @@ export async function fetchCurrentYearFromServer() {
         const data = await response.json();
 
         // 4. 파싱된 데이터에서 연도 값을 추출하여 반환합니다.
-        if (data && typeof data.year === 'number') {
-            return data.year;
+        if (data && typeof data.currentYear === 'number') {
+            return data.currentYear;
         } else {
-            throw new Error('서버 응답 형식이 올바르지 않습니다: "year" 필드가 없습니다.');
+            throw new Error('서버 응답 형식이 올바르지 않습니다: "currentYear" 필드가 없습니다.');
         }
     } catch (error) {
         console.error("서버에서 연도 정보를 가져오는 중 오류 발생:", error);
@@ -356,4 +342,22 @@ export async function fetchCurrentYearFromServer() {
         return new Date().getFullYear();
     }
 }
-///////////////////////랜덤관련함수-끝/////////////////////////////////////
+
+export async function fetchBirthYearRangeFromServer() {
+    try {
+        const response = await fetch(`${NODE_SERVER_URL}/api/getBirthYearRange`);
+        if (!response.ok) {
+            throw new Error(`서버 오류: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data && data.minBirthYear && data.maxBirthYear) {
+            return { minBirthYear: data.minBirthYear, maxBirthYear: data.maxBirthYear };
+        } else {
+            throw new Error('서버 응답 형식이 올바르지 않습니다: "minBirthYear" 또는 "maxBirthYear" 필드가 없습니다.');
+        }
+    } catch (error) {
+        console.error("서버에서 출생 연도 범위를 가져오는 중 오류 발생:", error);
+        throw error; // 오류를 다시 던져 상위 호출자에게 알림
+    }
+}
+

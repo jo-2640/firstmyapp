@@ -1,0 +1,40 @@
+/* 사용자 목록 및 친구 목록 */
+.user-list {
+   list-style: none;
+   padding: 10px 0; /* ✅ 위아래 10px, 좌우 0px 여백 추가 */
+   margin: 0;
+}
+
+/* 기존 user-item은 사용자 목록 아이템에 사용되는 일반 스타일 */
+.user-item {
+    display: flex;
+    align-items: center;
+
+    /* ✅ 위아래 여백을 줘서 늘어져 보이는 현상 해결 */
+    padding: 10px;
+
+    border-bottom: 1px solid #eee;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.user-list-item {
+    display: flex;
+    /* ✅ 추가: 자식 요소를 가로로 정렬 */
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+
+    /* 기타 스타일... */
+}
+.user-item-content {
+    display: flex;
+    align-items: center; /* ✅ 세로축 중앙 정렬 */
+    flex-grow: 1; /* ✅ 부모의 남은 공간을 모두 차지 */
+    gap: 15px; /* ✅ 내부 요소들 간 간격 추가 */
+
+    /* 기타 스타일... */
+}

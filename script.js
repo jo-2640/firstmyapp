@@ -6,15 +6,15 @@ import { auth, db, storage } from './src/firebase-init.js';
 // ✅ 최신 모듈 방식에 맞게 Firebase 함수들을 직접 import
 import { createUserWithEmailAndPassword, signOut ,updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
-import { currentUserUid, currentUserData, currentUserNickname } from './src/user-data.js';
+import { currentUserUid, currentUserData, currentUserNickname, setCurrentUser } from './src/user-data.js';
 import { handleLogin, handleLogout, updateAuthUIForMode, setupAuthListener, initializeAuthUIElements } from './src/auth-service.js';
-import { LOCAL_STORAGE_KEYS,SERVER_BASE_URL } from './src/constants.js';
+import { LOCAL_STORAGE_KEYS,SERVER_BASE_URL, BIRTH_YEAR_RANGE, initializeConstants } from './src/constants.js';
 import AppUI from './src/AppUI.js';
-import { filterDisplayUsers } from './js/allUserDiv.js';
-import { updateFriendRequestBadge } from './friendRequest.js';
-import { getDefaultProfileImage, showToast, resizeAndOptimizeImg, fetchCurrentYearFromServer, detailedAgeGroups, fetchBirthYearRangeFromServer} from './utils.js';
-import { initializeMyProfileDivUI, clearMyProfileUI } from './js/myProfileDiv.js';
-import { fillSignUpFieldsWithRandomDataTemp } from './js/temp.js';
+import { filterDisplayUsers, applyUserFilters } from './src/allUserDiv.js';
+
+import { getDefaultProfileImage, showToast, resizeAndOptimizeImg, fetchCurrentYearFromServer, detailedAgeGroups, fetchBirthYearRangeFromServer} from './src/utils.js';
+import { initializeMyProfileDivUI, clearMyProfileUI } from './src/myProfileDiv.js';
+import { fillSignUpFieldsWithRandomDataTemp } from './src/temp.js';
 
 let minBirthYear = 1980; //임시 변수이나 지우면 안됨~서버값
 let serverCurrentYear = new Date().getFullYear(); //임시변수이나 지우면안됨~ 서버값
@@ -29,12 +29,14 @@ export function getSignUpMode() {
 export function toggleSignUpMode() {
     isSignUpMode = !isSignUpMode;
     updateAuthUIForMode(isSignUpMode);
+
 }
 
-function updateBirthYearDropdownOptions(minBirthYear, currentYear) {
-    const birthYearSelect = AppUI.signupBirthYearSelect;
+function updateBirthYearDropdownOptions(selectElement,minBirthYear, currentYear) {
+
+    const birthYearSelect = selectElement ;
     if (!birthYearSelect) {
-        console.error("signup-birth-year 요소를 찾을 수 없습니다 (AppUI).");
+        console.error("나이 선택 요소를 찾을 수 없습니다 (AppUI).");
         return;
     }
     birthYearSelect.innerHTML = '';
@@ -71,12 +73,6 @@ function updateAgeGroupDropdownOptions(dropdownElement, type) {
     defaultOption.selected = true;
     defaultOption.disabled = true;
     dropdownElement.appendChild(defaultOption);
-    if (type === 'min') {
-        const optionUnder10 = document.createElement('option');
-        optionUnder10.value = '10-under';
-        optionUnder10.textContent = '10대 미만';
-        dropdownElement.appendChild(optionUnder10);
-    }
 
     detailedAgeGroups.forEach(group => {
         const option = document.createElement('option');
@@ -85,12 +81,6 @@ function updateAgeGroupDropdownOptions(dropdownElement, type) {
         dropdownElement.appendChild(option);
     });
 
-    if (type === 'max') {
-        const optionPlus60 = document.createElement('option');
-        optionPlus60.value = '60-plus';
-        optionPlus60.textContent = '60대 이상';
-        dropdownElement.appendChild(optionPlus60);
-    }
 }
 
 async function handleSignup(e) {
@@ -161,8 +151,8 @@ async function handleSignup(e) {
         showToast("최소 나이 그룹은 최대 나이 그룹보다 클 수 없습니다.", "error");
         return;
     }
-    const currentYear = serverCurrentYear;
-    if (birthYear < minBirthYear || birthYear > currentYear) {
+
+    if (birthYear < BIRTH_YEAR_RANGE.minBirthYear || birthYear > BIRTH_YEAR_RANGE.maxBirthYear) {
         return showToast("유효하지 않은 출생 연도입니다.", "error");
     }
 
@@ -172,19 +162,15 @@ async function handleSignup(e) {
         let uid;
         let profileImgUrl = '';
 
-        // ✅ 1단계: Firebase 사용자 계정 생성 (서버 API 호출)
-        showToast("사용자 계정 생성 중...", "info");
-        const userCreationResponse = await fetch(`${SERVER_BASE_URL}/api/signup/create-user`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password, gender, nickname })
-        });
 
-        const userCreationResult = await userCreationResponse.json();
-        if (!userCreationResponse.ok) {
-            throw new Error(userCreationResult.message || "계정 생성에 실패했습니다.");
-        }
-        uid = userCreationResult.uid;
+        // ✅ 1단계: Firebase 사용자 계정 생성 (클라이언트 SDK 사용)
+        showToast("사용자 계정 생성 중...", "info");
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        uid = user.uid;
+
+        // 사용자 프로필에 닉네임 업데이트
+        await updateProfile(user, { displayName: nickname });
         showToast("계정 생성 성공! 이미지 업로드 준비 중.", "success");
 
         // ✅ 2단계: 프로필 이미지 업로드 (서버 API 호출 및 Azure 업로드)
@@ -210,15 +196,19 @@ async function handleSignup(e) {
             });
 
             const sasData = await sasResponse.json();
-            if (!sasResponse.ok || !sasData.sasToken || !sasData.blobUrl) {
-                throw new Error("SAS 토큰을 받지 못했습니다.");
+            if (!sasResponse.ok || !sasData.writeSasToken || !sasData.blobUrl) {
+                throw new Error("SAS 토큰을 받지 못했습니다. 서버응답을 확인하세요");
             }
-            console.log(`${sasData.blobUrl}?${sasData.sasToken} 입니다`);
-            const isUploadSuccess = await uploadFileToAzureWithSasToken(`${sasData.blobUrl}?${sasData.sasToken}`, optimizedResult.blob, optimizedResult.blob.type);
+            const writeSasToken = sasData.writeSasToken;
+            const readSasToken = sasData.readSasToken;
+            const blobUrl = sasData.blobUrl;
+            console.log("프론트엔드: SAS 토큰 발급 성공:", sasData);
+            console.log(`${blobUrl}?${writeSasToken} 입니다`);
+            const isUploadSuccess = await uploadFileToAzureWithSasToken(`${blobUrl}?${writeSasToken}`, optimizedResult.blob, optimizedResult.blob.type);
             if (!isUploadSuccess) {
                 throw new Error("이미지 업로드 실패.");
             }
-            profileImgUrl = sasData.blobUrl;
+            profileImgUrl = blobUrl;
             showToast("이미지 업로드 성공!", "success");
         } else {
             profileImgUrl = getDefaultProfileImage(gender);
@@ -227,7 +217,7 @@ async function handleSignup(e) {
 
         // ✅ 3단계: Firestore에 최종 정보 저장 (서버 API 호출)
         showToast("최종 프로필 정보 저장 중...", "info");
-        const finalizeResponse = await fetch(`${SERVER_BASE_URL}/api/signup/finalize`, {
+        const finalizeResponse = await fetch(`${SERVER_BASE_URL}/api/signup/finalize-all`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -249,9 +239,6 @@ async function handleSignup(e) {
         }
 
         showToast("회원가입이 완료되었습니다!", "success");
-
-        // 성공 시 폼 초기화 및 로그인
-        await handleLogin(email, password);
         if (AppUI.authEmailInput) AppUI.authEmailInput.value = '';
         // ... (나머지 폼 초기화 로직) ...
         toggleSignUpMode();
@@ -277,7 +264,7 @@ async function handleSignup(e) {
 // Azure에 파일을 직접 업로드하는 함수 (기존 코드)
 async function uploadFileToAzureWithSasToken(uploadUrl, file, fileType) {
     try {
-        console.log("Azure에 파일 직접 업로드 시작:", file.name);
+        console.log(`Azure에 파일 직접 업로드 시작: Type=${file.type}, Size=${file.size} Bytes`);
         const response = await fetch(uploadUrl, {
             method: 'PUT',
             body: file,
@@ -297,24 +284,65 @@ async function uploadFileToAzureWithSasToken(uploadUrl, file, fileType) {
         return false;
     }
 }
-// Azure에 파일을 업로드하는 클라이언트 측 함수
 
+// Azure에 파일을 업로드하는 클라이언트 측 함수
+function updateMaxAgeOptions(minSelect, maxSelect) {
+
+    const minSelectedValue = minSelect.value;
+    const minIndex = detailedAgeGroups.findIndex(g => g.value === minSelectedValue);
+    let maxSelectedValue = maxSelect.value;
+    let currentMaxIndex = detailedAgeGroups.findIndex(g => g.value === maxSelectedValue);
+    if (minSelectedValue === '10-under') {
+       maxSelect.value = '10-under';
+    } else if (minSelectedValue === '60-plus') {
+        maxSelect.value = '60-plus';
+    } else {
+        if (maxSelectedValue === '10-under' || maxSelectedValue === '60-plus' || (currentMaxIndex !== -1 && minIndex !== -1 && currentMaxIndex < minIndex)) {
+           maxSelect.value = minSelectedValue;
+        }
+    }
+
+}
+
+
+function updateMinAgeOptions(minSelect, maxSelect) {
+
+    const maxSelectedValue = maxSelect.value;
+    const maxIndex = detailedAgeGroups.findIndex(g => g.value === maxSelectedValue);
+    let minSelectedValue = minSelect.value;
+    let currentMinIndex = detailedAgeGroups.findIndex(g => g.value === minSelectedValue);
+
+    if (maxSelectedValue === '10-under') {
+        minSelect.value = '10-under';
+    } else if (maxSelectedValue === '60-plus') {
+        minSelect.value = '60-plus';
+    } else {
+        if (minSelectedValue === '10-under' || minSelectedValue === '60-plus' || (currentMinIndex !== -1 && maxIndex !== -1 && currentMinIndex > maxIndex)) {
+            minSelect.value = maxSelectedValue;
+        }
+    }
+
+
+}
 
 /////////////////////////////////메인함수부분
 
 
     console.log("script.js가 초기화됩니다.");
 
-    AppUI.initialize();
-    console.log("AppUI 객체 초기화 완료:", AppUI);
-
-    initializeAuthUIElements();
-    setupAuthListener();
+  
 //////////////////////////////////////////////
     document.addEventListener('DOMContentLoaded', async () => {
         try {
-            const birthYearRange = await fetchBirthYearRangeFromServer();
-            updateBirthYearDropdownOptions(birthYearRange.minBirthYear, birthYearRange.maxBirthYear);
+            AppUI.initialize();
+            console.log("AppUI 객체 초기화 완료:", AppUI);
+
+            await initializeConstants();   
+            setupAuthListener();
+            
+           console.log(BIRTH_YEAR_RANGE.minBirthYear);
+            updateBirthYearDropdownOptions(AppUI.signupBirthYearSelect, BIRTH_YEAR_RANGE.minBirthYear, BIRTH_YEAR_RANGE.maxBirthYear);
+           
         } catch (error) {
             console.error(`[script.js] 연도 정보를 가져오는데 실패했습니다: ${error.message}`);
             showToast(`연도 정보를 가져올 수 없습니다: ${error.message}`, 'error');
@@ -326,6 +354,8 @@ async function uploadFileToAzureWithSasToken(uploadUrl, file, fileType) {
 
         updateAgeGroupDropdownOptions(AppUI.signupMinAgeSelect, 'min');
         updateAgeGroupDropdownOptions(AppUI.signupMaxAgeSelect, 'max');
+
+        
 
         if (AppUI.deleteAllDataBtn) {
             AppUI.deleteAllDataBtn.addEventListener('click', async () => {
@@ -372,7 +402,7 @@ async function uploadFileToAzureWithSasToken(uploadUrl, file, fileType) {
                 const currentModeIsSignUp = getSignUpMode();
                 console.log(`authSubmitBtn 클릭됨. 현재 모드: ${currentModeIsSignUp ? '회원가입' : '로그인'}`);
                 AppUI.authSubmitBtn.disabled = true;
-                const originalText = AppUI.authSubmitBtn.textContent;
+               const originalText = AppUI.authSubmitBtn.textContent;
                 AppUI.authSubmitBtn.textContent = currentModeIsSignUp ? '가입 중...' : '로그인 중...';
                 try {
                     if (currentModeIsSignUp) {
@@ -410,36 +440,11 @@ async function uploadFileToAzureWithSasToken(uploadUrl, file, fileType) {
 
         if (AppUI.signupMinAgeSelect && AppUI.signupMaxAgeSelect) {
             AppUI.signupMinAgeSelect.addEventListener('change', () => {
-                const minSelectedValue = AppUI.signupMinAgeSelect.value;
-                const minIndex = detailedAgeGroups.findIndex(g => g.value === minSelectedValue);
-                let maxSelectedValue = AppUI.signupMaxAgeSelect.value;
-                let currentMaxIndex = detailedAgeGroups.findIndex(g => g.value === maxSelectedValue);
-                if (minSelectedValue === '10-under') {
-                    AppUI.signupMaxAgeSelect.value = '10-under';
-                } else if (minSelectedValue === '60-plus') {
-                    AppUI.signupMaxAgeSelect.value = '60-plus';
-                } else {
-                    if (maxSelectedValue === '10-under' || maxSelectedValue === '60-plus' || (currentMaxIndex !== -1 && minIndex !== -1 && currentMaxIndex < minIndex)) {
-                        AppUI.signupMaxAgeSelect.value = minSelectedValue;
-                    }
-                }
+                updateMinAgeOptions(AppUI.signupMinAgeSelect, AppUI.signupMaxAgeSelect);
             });
 
             AppUI.signupMaxAgeSelect.addEventListener('change', () => {
-                const maxSelectedValue = AppUI.signupMaxAgeSelect.value;
-                const maxIndex = detailedAgeGroups.findIndex(g => g.value === maxSelectedValue);
-                let minSelectedValue = AppUI.signupMinAgeSelect.value;
-                let currentMinIndex = detailedAgeGroups.findIndex(g => g.value === minSelectedValue);
-
-                if (maxSelectedValue === '10-under') {
-                    AppUI.signupMinAgeSelect.value = '10-under';
-                } else if (maxSelectedValue === '60-plus') {
-                    AppUI.signupMinAgeSelect.value = '60-plus';
-                } else {
-                    if (minSelectedValue === '10-under' || minSelectedValue === '60-plus' || (currentMinIndex !== -1 && maxIndex !== -1 && currentMinIndex > maxIndex)) {
-                        AppUI.signupMinAgeSelect.value = maxSelectedValue;
-                    }
-                }
+                updateMaxAgeOptions(AppUI.signupMinAgeSelect,AppUI.signupMaxAgeSelect);
             });
         }
 
@@ -502,9 +507,44 @@ async function uploadFileToAzureWithSasToken(uploadUrl, file, fileType) {
             console.error("script.js:", "Profile image input or preview element not found in DOM. Check HTML IDs!");
         }
 
+        /////////공동화면-메인화면
 
 
 
+        if (AppUI.filterMinAgeGroupSelect && AppUI.filterMaxAgeGroupSelect) {
+
+            updateAgeGroupDropdownOptions(AppUI.filterMinAgeGroupSelect, 'min');
+            updateAgeGroupDropdownOptions(AppUI.filterMaxAgeGroupSelect, 'max');
+
+
+            AppUI.filterMinAgeGroupSelect.addEventListener('change', () => {
+                updateMaxAgeOptions(AppUI.filterMinAgeGroupSelect, AppUI.filterMaxAgeGroupSelect);
+
+            });
+
+            AppUI.filterMaxAgeGroupSelect.addEventListener('change', () => {
+                updateMinAgeOptions(AppUI.filterMinAgeGroupSelect,AppUI.filterMaxAgeGroupSelect);
+
+            });
+        }else{
+            console.error("오류:나이 그룹 필터 드랍다운 요소를 찾을수 없습니다. AppUI와 HTML ID를 확신하세요! ")
+        }
+
+
+
+        if(AppUI.applyFilterBtn){
+            AppUI.applyFilterBtn.addEventListener('click', ()=>{
+                  const filterOptions = {
+                           gender: AppUI.filterGenderSelect.value,
+                           minAgeGroupValue: AppUI.filterMinAgeGroupSelect.value,
+                           maxAgeGroupValue: AppUI.filterMaxAgeGroupSelect.value,
+                           region: AppUI.filterRegionSelect.value
+                       };
+
+                       console.log('✅ 적용할 필터:', filterOptions);
+                filterDisplayUsers(filterOptions);
+            });
+        }
         document.querySelectorAll('.toggle-password').forEach(toggle => {
             toggle.addEventListener('click', () => {
                 const targetId = toggle.dataset.target;

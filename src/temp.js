@@ -12,7 +12,7 @@ import {
 
 
      
-import { fetchCurrentYearFromServer, fetchBirthYearRangeFromServer, detailedAgeGroups,   getRandomElement} from '../utils.js';
+import { fetchCurrentYearFromServer, fetchBirthYearRangeFromServer, detailedAgeGroups,   getRandomElement} from './utils.js';
 /**
  * 주어진 데이터 목록에서 무작위 값을 선택하여 반환하는 헬퍼 함수입니다.
  * @param {Array<string>} list - 값을 선택할 배열입니다.

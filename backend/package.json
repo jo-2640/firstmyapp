@@ -16,7 +16,8 @@
     "express": "^5.1.0",
     "firebase-admin": "^12.x.x",
     "multer": "^2.0.1",
-    "sharp": "^0.34.3"
+    "sharp": "^0.34.3",
+    "socket.io": "^4.8.1"
   },
   "description": ""
 }

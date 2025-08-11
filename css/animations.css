@@ -1,0 +1,255 @@
+/* ✅ 토스트 알림 기본 스타일 */
+.toast-notification {
+    position: fixed; /* 화면에 고정 */
+    bottom: 30px; /* 아래에서 30px 위로 */
+    left: 50%; /* 오른쪽에서 30px 왼쪽으로 */
+    padding: 15px 25px;
+    background-color: #333;
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    opacity: 0; /* 기본적으로 숨겨져 있음 */
+    visibility: hidden; /* 스크린 리더도 접근하지 못하게 함 */
+    transform: translateY(20px); /* 아래쪽으로 살짝 이동 */
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+    z-index: 1000; /* 다른 요소들 위에 표시 */
+    min-width: 250px;
+    text-align: center;
+}
+
+/* ✅ 알림이 보일 때의 스타일 */
+.toast-notification.visible {
+    opacity: 1; /* 완전히 보이게 함 */
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ✅ 성공 메시지 스타일 (초록색) */
+.toast-notification.success {
+    background-color: #28a745;
+}
+
+/* ✅ 오류 메시지 스타일 (빨간색) */
+.toast-notification.error {
+    background-color: #dc3545;
+}
+
+/* ✅ 모든 버튼에 공통으로 적용되는 기본 스타일 */
+.btn-base {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, box-shadow 0.2s;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.btn-base:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ✅ 작은 버튼을 위한 유틸리티 클래스 */
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+}
+
+/* ✅ 주된 액션을 위한 버튼 (로그인, 필터 적용 등) */
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+.btn-primary:hover {
+    background-color: #0069d9;
+}
+
+/* ✅ 보조 액션을 위한 버튼 (취소, 로그아웃 등) */
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+/* ✅ 링크 버튼의 기본 스타일 */
+.btn-link {
+    background: rgba(0, 123, 255, 0.1); /* 평소에 연한 배경색 채우기 */
+    color: #007bff;
+    border: none;
+    padding: 8px 16px; /* 버튼처럼 보이도록 패딩 추가 */
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+
+    /* 그림자 효과는 마우스가 올라갔을 때만 보여줍니다. */
+    box-shadow: none;
+
+    transition: background-color 0.2s, box-shadow 0.2s; /* 전환 효과 추가 */
+}
+
+/* ✅ 호버 시 색상 변경 */
+.btn-link:hover {
+    background-color: rgba(0, 123, 255, 0.2); /* 평소보다 약간 진한 색상 */
+    text-decoration: underline;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* 호버 시 그림자 효과 */
+}
+/* ✅ 위험한 액션을 위한 버튼 (삭제 등) */
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+.btn-danger:hover {
+    background-color: #c82333;
+}
+/* ✅ 채팅 전송 버튼 */
+#chat-send-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    background-color: #007bff;
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+/* ✅ 모달 창의 닫기 버튼 */
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #6c757d;
+    line-height: 1;
+    padding: 0;
+    transition: color 0.2s;
+}
+/* ✅ 중요도가 높은 '기본' 버튼 스타일 */
+.action-btn.primary {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.action-btn.primary:hover {
+    background-color: #0069d9;
+    border-color: #0062cc;
+}
+
+/* ✅ 중요도가 낮은 '보조' 버튼 스타일 */
+.action-btn.secondary {
+    background-color: #f8f9fa;
+    color: #495057;
+    border-color: #ced4da;
+}
+
+.action-btn.secondary:hover {
+    background-color: #e2e6ea;
+    border-color: #dae0e5;
+}
+.close-btn:hover {
+    color: #333;
+}
+#chat-send-btn:hover {
+    background-color: #0069d9;
+}
+/* ✅ App 내부 버튼들의 기본 스타일 */
+.action-btn {
+    padding: 8px 16px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, box-shadow 0.2s, border-color 0.2s;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* ✅ 호버 효과 */
+.action-btn:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-color: #adb5bd;
+}
+/* ✅ App 내부 버튼들의 기본 스타일 (기존 코드) */
+.action-btn {
+    padding: 8px 16px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, box-shadow 0.2s, border-color 0.2s;
+    text-align: center;
+    white-space: nowrap;
+}
+.action-btn:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-color: #adb5bd;
+}
+
+/* ✅ 보조 버튼 스타일 (기존 코드) */
+.action-btn.secondary {
+    background-color: #f8f9fa;
+    color: #495057;
+    border-color: #ced4da;
+}
+.action-btn.secondary:hover {
+    background-color: #e2e6ea;
+    border-color: #dae0e5;
+}
+
+/* ✅ 버튼 색상 및 텍스트 스타일 (Tailwind 클래스와 유사하게 매칭) */
+.accept-request-btn {
+    background-color: rgb(150,250,10); /* bg-purple-500 */
+    color: white;
+    padding: 4px 12px; /* px-3 py-1 */
+    border-radius: 6px; /* rounded-md */
+    font-size: 0.875rem; /* text-sm */
+}
+
+.accept-request-btn:hover {
+    background-color: #7C3AED; /* hover:bg-purple-600 */
+}
+
+.add-friend-btn {
+    background-color: #6366F1; /* bg-indigo-500 */
+    color: white;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+}
+
+.add-friend-btn:hover {
+    background-color: #4F46E5; /* hover:bg-indigo-600 */
+}
+
+/* 추가된 버튼 스타일 */
+/* ✅ 빨간색 계열로 변경 */
+
+.cancel-friend-request-btn {
+    background-color: #dc3545; /* 빨간색 배경 */
+    color: white; /* 흰색 텍스트 */
+    border-color: #dc3545;
+}
+
+
+.cancel-friend-request-btn:hover {
+    background-color: #c82333; /* 호버 시 더 어두운 빨간색 */
+    border-color: #bd2130;
+}
+
+.cancel-friend-btn:hover{
+    background-color: rgb(100,100,100);
+    border-color:rgb(100,100,100);
+}
+
+.cancel-friend-btn {
+    background-color: rgb(190,180,160);
+    color: white; /* 흰색 텍스트 */
+    border-color:  rgb(190,180,160);
+}

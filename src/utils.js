@@ -1,18 +1,37 @@
 // utils.js
 // 이 파일은 여러 모듈에서 공통적으로 사용되는 유틸리티 함수들을 모아놓습니다.
-const NODE_SERVER_URL = 'http://localhost:3000';
 
+import { SERVER_BASE_URL } from "./constants";
+
+
+// ✅ 토스트 알림을 보여주는 함수
 export function showToast(message, type = 'info') {
+    // 1. 토스트 알림 HTML 요소 가져오기
     const toast = document.querySelector('.toast-notification');
-    if (!toast) {
-        console.warn("토스트 알림 요소를 찾을 수 없습니다!");
-        return;
-    }
+
+    // 2. 메시지와 타입 설정
     toast.textContent = message;
-    toast.className = `toast-notification show ${type}`;
+    toast.className = 'toast-notification visible ' + type; // .visible 클래스를 추가
+
+    // 3. 3초(3000ms) 후에 토스트 숨기기
     setTimeout(() => {
-        toast.className = 'toast-notification';
+        toast.className = 'toast-notification'; // .visible 클래스 제거
     }, 3000);
+}
+export function getAgeGroupLabelFromBirthYear(birthYear) {
+    // birthYear가 유효한지 먼저 확인합니다.
+    if (typeof birthYear !== 'number' || isNaN(birthYear)) {
+        return '나이 정보 없음';
+    }
+
+    // 현재 연도를 기준으로 나이를 계산합니다.
+    const currentYear = new Date().getFullYear();
+    const age = currentYear - birthYear + 1;
+
+    // 계산된 나이를 바탕으로 그룹을 찾습니다.
+    const group = detailedAgeGroups.find(g => age >= g.min && age <= g.max);
+
+    return group ? group.label : '나이 정보 없음';
 }
 // 출생 연도를 기반으로 사용자의 연령대 레이블을 반환합니다.
 // 이 함수는 주로 프로필 표시 등에서 사용될 때, 저장된 'value'에 해당하는 상세 레이블을 반환합니다.
@@ -21,7 +40,12 @@ export function getAgeGroupLabel(ageGroupValue) {
     // 'label' 속성에는 "20대 초반 (20-23세)"와 같이 상세 정보가 포함됩니다.
     return group ? group.label : '나이 정보 없음';
 }
-
+export function getAgeFromBirthYear(birthYear, currentYear) {
+    if (typeof birthYear !== 'number' || isNaN(birthYear) || birthYear <= 1900) {
+        return null;
+    }
+    return currentYear - birthYear + 1; // 한국식 나이 계산
+}
 // 성별 값을 한국어 레이블로 변환합니다.
 export function getGenderLabel(gender) {
     if (gender === 'male') return '남성';
@@ -50,8 +74,36 @@ export function getRegionLabel(region) {
         case 'gyeongnam': return '경남';
         case 'jeju': return '제주';
         default: return '지역 정보 없음';
+        
     }
 }
+export const regionMap = {
+    '전체': 'all',
+    '서울': 'seoul',
+    '부산': 'busan',
+    '대구': 'daegu',
+    '인천': 'incheon',
+    '광주': 'gwangju',
+    '대전': 'daejeon',
+    '울산': 'ulsan',
+    '세종': 'sejong',
+    '경기': 'gyeonggi',
+    '강원': 'gangwon',
+    '충북': 'chungbuk',
+    '충남': 'chungnam',
+    '전북': 'jeonbuk',
+    '전남': 'jeonnam',
+    '경북': 'gyeongbuk',
+    '경남': 'gyeongnam',
+    '제주': 'jeju'
+};
+
+export const genderMap = {
+    '전체': 'all',
+    '남성': 'male',
+    '여성': 'female'
+};
+
 
 // 성별에 따른 기본 프로필 이미지 경로를 반환합니다.
 export function getDefaultProfileImage(gender) {
@@ -317,7 +369,7 @@ export async function fetchCurrentYearFromServer() {
     try {
      
 
-        const response = await fetch(`${NODE_SERVER_URL}/api/current-year`);
+        const response = await fetch(`${SERVER_BASE_URL}/api/current-year`);
         // 2. 응답이 성공적인지 확인합니다 (HTTP 상태 코드 200번대).
         if (!response.ok) {
             // 응답이 실패하면 오류를 던집니다.
@@ -345,7 +397,7 @@ export async function fetchCurrentYearFromServer() {
 
 export async function fetchBirthYearRangeFromServer() {
     try {
-        const response = await fetch(`${NODE_SERVER_URL}/api/getBirthYearRange`);
+        const response = await fetch(`${SERVER_BASE_URL}/api/getBirthYearRange`);
         if (!response.ok) {
             throw new Error(`서버 오류: ${response.status} ${response.statusText}`);
         }

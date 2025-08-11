@@ -22,7 +22,7 @@ if (!AZURE_ACCOUNT_NAME || !AZURE_ACCOUNT_KEY || !AZURE_CONTAINER_NAME) {
     });
 } else {
     // 1. 사용자 계정 생성 (UID 확보) 라우터
-    router.post('/signup/create-user', async (req, res) => {
+    router.post('/signup/create-user', async (req, res) => {//기존 서버에서 생성한던걸 클라이언트엣 생성함.(현재 미사용중)
         try {
             const { email, password, gender, nickname } = req.body;
 
@@ -80,24 +80,24 @@ if (!AZURE_ACCOUNT_NAME || !AZURE_ACCOUNT_KEY || !AZURE_CONTAINER_NAME) {
             const writeSasOptions = {
                 containerName: AZURE_CONTAINER_NAME,
                 blobName: blobName,
-                permissions: BlobSASPermissions.from({ create: true, write: true }),
+                permissions: BlobSASPermissions.from({ create: true, write: true, }),
                 expiresOn: new Date(new Date().valueOf() + 300 * 1000) 
             };
-            console.log(`서버: UID ${uid}에 대한 SAS 토큰 발급 요청 - Blob 이름: ${sasOptions.blobName}`);
-            console.log(`서버: SAS 토큰 만료 시간: ${sasOptions.expiresOn}`);
-            console.log(`서버: SAS 토큰 권한: ${sasOptions.permissions.toString()}`);    
+            console.log(`서버: UID ${uid}에 대한 SAS 토큰 발급 요청 - Blob 이름: ${writeSasOptions.blobName}`);
+            console.log(`서버: SAS 토큰 만료 시간: ${writeSasOptions.expiresOn}`);
+            console.log(`서버: SAS 토큰 권한: ${writeSasOptions.permissions.toString()}`);    
             console.log(`서버: Azure Storage 계정 이름: ${AZURE_ACCOUNT_NAME}`);
             console.log(`서버: Azure Storage 컨테이너 이름: ${AZURE_CONTAINER_NAME}`);  
             
             const writeSasToken = generateBlobSASQueryParameters(writeSasOptions, sharedKeyCredential).toString();
 
             const readSasOptions = {
-                containerName: AZURE_CONTAINER_NAME,    
+                containerName: AZURE_CONTAINER_NAME,
                 blobName: blobName,
-                permissions: BlobSASPermissions.from({ read: true }),
-                expiresOn: new Date(new Date().valueOf() + 3600 *1000)
+                permissions: BlobSASPermissions.from({ read: true, }),
+                expiresOn: new Date(new Date().valueOf() + 300 * 1000) 
             };
-            const readSasToken = generateBlobSSAQueryParameters(readSasOptions, sharedKeyCredential).toString();
+            const readSasToken = generateBlobSASQueryParameters(readSasOptions, sharedKeyCredential).toString();
             const blobUrl = containerClient.getBlobClient(blobName).url;
 
             console.log(`서버: UID ${uid}에 대한 SAS 토큰 발급 성공`);
@@ -105,7 +105,7 @@ if (!AZURE_ACCOUNT_NAME || !AZURE_ACCOUNT_KEY || !AZURE_CONTAINER_NAME) {
                 success: true,
                 message: 'SAS 토큰이 성공적으로 발급되었습니다.읽기/쓰기',
                 writeSasToken: writeSasToken,
-                readSasToken: readSasToken,
+                readSasToken:readSasToken,
                 blobUrl: blobUrl
             });
 
@@ -117,23 +117,26 @@ if (!AZURE_ACCOUNT_NAME || !AZURE_ACCOUNT_KEY || !AZURE_CONTAINER_NAME) {
     });
 
     // 3. Firestore에 최종 정보 저장 라우터
-    router.post('/signup/finalize', async (req, res) => {
+    
+    router.post('/signup/finalize-all', async (req, res) => {
         try {
             const { uid, nickname, birthYear, region, gender, minAgeGroup, maxAgeGroup, bio, profileImgUrl } = req.body;
 
-            // 필수 필드 유효성 검사
             if (!uid || !nickname || !birthYear || !region || !gender || minAgeGroup === undefined || maxAgeGroup === undefined) {
-                return res.status(400).json({ success: false, message: '필수 정보가 누락되었습니다.' });
+                    return res.status(400).json({ success: false, message: '필수 정보가 누락되었습니다.' });
             }
 
-            // Firestore에 사용자 정보 저장
+            await auth.updateUser(uid, {
+                displayName: nickname.trim(),
+                photoURL: profileImgUrl
+            }); 
             await db.collection('users').doc(uid).set({
                 nickname: nickname.trim(),
                 birthYear: parseInt(birthYear),
-                region: region.trim(),
+                region: region.trim(),  
                 gender: gender,
                 minAgeGroup: minAgeGroup,
-                maxAgeGroup: maxAgeGroup,
+                maxAgeGroup: maxAgeGroup,   
                 profileImgUrl: profileImgUrl,
                 bio: bio ? bio.trim() : '',
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -142,25 +145,16 @@ if (!AZURE_ACCOUNT_NAME || !AZURE_ACCOUNT_KEY || !AZURE_CONTAINER_NAME) {
                 friendRequestsSent: [],
                 friendRequestsReceived: []
             });
-
-            // Firebase Auth의 photoURL도 최종 이미지 URL로 업데이트
-            await auth.updateUser(uid, { photoURL: profileImgUrl });
-
-            console.log(`서버: Firestore에 최종 사용자 정보 저장 성공 - UID: ${uid}`);
-
+            console.log(`서버: Firestore에 최종 사용자 정보 저장 성공 - UID: ${uid}`);  
             return res.status(200).json({
                 success: true,
                 message: '회원가입이 완료되었습니다!',
-                uid: uid
             });
-
-        } catch (error) {
+        }catch (error) {
             console.error("서버: 최종 데이터 저장 중 오류 발생:", error);
             return res.status(500).json({ success: false, message: '최종 데이터 저장 중 오류가 발생했습니다.' });
-        }
-    });
+        }   
+    }); 
 }
-
-
 // ⭐ 이 부분이 있어야 server.js에서 이 라우터를 import 할 수 있습니다.
 module.exports = router;

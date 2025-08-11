@@ -1,0 +1,80 @@
+.chat-tabs {
+  display: flex;
+  border-bottom: 1px solid #ccc;
+  overflow-x: auto;
+  background: #fff;
+}
+
+.chat-tab {
+  padding: 8px 16px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 3px solid transparent;
+}
+
+.chat-tab.active {
+  border-bottom-color: #2a6cfb;
+  color: #2a6cfb;
+}
+
+.chat-rooms {
+  position: relative;
+  height: 400px; /* 예시 */
+  border: 1px solid #ccc;
+  overflow: hidden;
+}
+
+.chat-room {
+  position: absolute;
+  top: 0; bottom: 0; left: 0; right: 0;
+  padding: 12px;
+  display: none;
+  flex-direction: column;
+  background: #fafafa;
+}
+
+.chat-room.active {
+  display: flex;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+
+.message {
+  max-width: 70%;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  border-radius: 20px;
+  background: #eee;
+  animation: popIn 0.3s ease forwards;
+}
+
+.message.self {
+  background: #2a6cfb;
+  color: white;
+  margin-left: auto;
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.chat-input {
+  border: 1px solid #ddd;
+  padding: 10px 14px;
+  font-size: 16px;
+  outline: none;
+}

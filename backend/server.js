@@ -1,7 +1,8 @@
 // backend/server.js
 const express = require('express');
 const cors = require('cors');
-
+const http = require('http');            // 수정
+const { Server } = require('socket.io'); // 수정
 // 1. 환경 설정 및 서비스 초기화 모듈 로드
 // 이 모듈들은 자체적으로 초기화 로직을 실행하거나 필요한 인스턴스를 내보냅니다.
 require('./config/env');          // 환경 변수 로드 및 유효성 검사 (앱 전역에서 사용)
@@ -37,8 +38,30 @@ app.use('/api', storageRoutes); // 예: /api/getBlobSasToken
 app.use('/api', adminRoutes);   // 예: /api/delete-all-data
 app.use('/api', userInfoRoutes); // 예: /api/getProfileImageUrl 
 // 5. 서버 시작
-app.listen(port, () => {
-    console.log(`Node.js 서버가 http://localhost:${port} 에서 실행 중입니다.`);
+
+
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors:{
+        origin: "*",
+    }
+}); 
+// 여기서 io 이벤트 핸들러 등록 가능
+io.on('connection', (socket) => {
+  console.log('새 클라이언트 접속:', socket.id);
+
+  // 예) 메시지 이벤트 처리
+  socket.on('chat message', (msg) => {
+    console.log('메시지 받음:', msg);
+    io.emit('chat message', msg); // 모든 클라이언트에 메시지 전달
+  });
+
+  socket.on('disconnect', () => {
+    console.log('클라이언트 접속 종료:', socket.id);
+  });
+});
+server.listen(port, () => {
+    console.log(`서버가 http://localhost:${port} 에서 실행 중입니다.`); 
     console.log(`애플리케이션이 성공적으로 초기화되었습니다.`);
     // 개발 편의를 위한 주요 엔드포인트 로그
     console.log(`주요 API 엔드포인트:`);

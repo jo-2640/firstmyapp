@@ -1,833 +1,884 @@
-/* 기본 스타일 */
+/* HomeLayOut.css — Chatty UI 스타일 (모던, 반응형, 채팅 친화적) */
+
+/* ---------- 변수 ---------- */
+:root{
+  --bg:#0f1724;              /* 전체 배경 어두운 계열 */
+  --panel:#0b1220;           /* 사이드/패널 배경 */
+  --card:#0f1728;            /* 카드/아이템 배경 */
+  --muted:#9aa4b2;           /* 보조 텍스트 */
+  --accent:#6c9ef8;          /* 주요 액센트 (푸른색) */
+  --accent-2:#8b5cf6;        /* 보조 액센트 (보라) */
+  --success:#22c55e;
+  --danger:#ef4444;
+  --glass: rgba(255,255,255,0.03);
+  --radius-lg:18px;
+  --radius-md:12px;
+  --radius-sm:8px;
+  --shadow-soft: 0 6px 18px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+  --transition: all .18s cubic-bezier(.2,.9,.3,1);
+  --max-width:1200px;
+  --gap:14px;
+  --font-sans: "Inter", "Segoe UI", Roboto, "Noto Sans KR", system-ui, -apple-system, "Helvetica Neue", Arial;
+}
+
+/* 기본 리셋 */
+*{box-sizing:border-box}
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Arial', sans-serif;
+  background: linear-gradient(180deg, #081223 0%, #07111b 100%);
+  color: #e6eef8;
+  font-size: 16px;
+}
 
 body {
-    font-family: 'Arial', sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f4f7f6;
-    min-height: 100vh;
-    color: #333;
-    display: flex; /* Flexbox 컨테이너로 설정 */
-    flex-direction: column; /* 자식 요소들을 세로로 쌓습니다 */
-    justify-content: center; /* <-- 이 부분을 flex-start 에서 center 로 변경 */
-    align-items: center; /* 교차 축(가로)을 따라 아이템을 중앙에 정렬 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
 }
 
-/* 컨테이너 및 섹션 */
-.auth-container,
-.main-app { /* auth-container와 main-app에 공통 스타일 적용 */
-    background-color: #fff;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    width: 100%; /* 너비를 100%로 설정하되, max-width로 제한 */
-    text-align: center;
-    /* margin: auto; 제거 - body의 flexbox 정렬이 담당 */
-}
-
+/* auth-container: 화면 중앙에 배치 */
 .auth-container {
-    max-width: 400px; /* 인증 컨테이너의 최대 너비 */
-    margin-top: 50px; /* 상단에 약간의 여백 추가 */
-    margin-bottom: 20px; /* 하단에 약간의 여백 추가 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;  /* 가로 중앙 */
+  align-items: center;      /* 세로 중앙 */
+  padding: 0 16px;          /* 좌우 약간 여백 */
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #081223 0%, #07111b 100%);
+  text-align: center;
+}
+.auth-title {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  text-align: center;
+  width: 100%;
 }
 
-.main-app {
-    max-width: 800px; /* 메인 앱 컨테이너의 최대 너비 */
-    display: flex; /* 내부 요소들을 flexbox로 정렬 */
-    flex-direction: column; /* 자식 요소들을 세로로 정렬 */
-    gap: 20px; /* 자식 요소들 사이의 간격 */
-    margin-top: 20px; /* 상단 여백 추가 */
-    margin-bottom: 20px; /* 하단 여백 추가 */
+/* 로그인 폼 박스 */
+.auth-form {
+  width: 100%;
+  max-width: 400px;         /* 최대너비 지정 */
+  background-color: #1a1f38;
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.7);
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  color: #e6eef8;
+  text-align: left;         /* 텍스트는 왼쪽 정렬 */
+}
+
+/* 레이블과 입력란 너비 100% */
+.auth-form label,
+.auth-form input,
+.auth-form select,
+.auth-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 레이블 스타일 */
+.auth-form label {
+  margin-bottom: 6px;
+  font-weight: 600;
+  display: block;
+}
+
+/* 입력란 스타일 */
+.auth-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 2px solid #ccc;
+  background: transparent;
+  color: #e6eef8;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 0;
+}
+
+.auth-input::placeholder {
+  color: #888;
+  opacity: 0.7;
+}
+
+.auth-input:focus {
+  border-bottom-color: #6c9ef8;
+  box-shadow: 0 2px 6px rgba(108, 158, 248, 0.6);
+}
+
+/* 기본 체크박스 숨기기 */
+#remember-me-checkbox {
+  opacity: 0;
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+/* 체크박스 커스텀 박스 */
+#remember-me-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+#remember-me-group label {
+  position: relative;
+  padding-left: 32px; /* 체크박스 크기 + 여백 */
+}
+
+/* 체크박스 박스 모양 만들기 */
+#remember-me-group label::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  background-color: transparent;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+/* 체크 상태일 때 박스 배경색 및 테두리 변경 */
+#remember-me-checkbox:checked + label::before {
+  background-color: #6c9ef8;  /* 튀는 파란색 */
+  border-color: #6c9ef8;
+  box-shadow: 0 0 6px #6c9ef8;
+}
+
+/* 체크 아이콘 표시 */
+#remember-me-checkbox:checked + label::after {
+  content: "✔";
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  pointer-events: none;
+}
+
+/* 비밀번호 토글 아이콘 위치 조정 */
+.password-input-container {
+  position: relative;
+  width: 100%;
+}
+
+.password-input-container .toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  user-select: none;
+  font-size: 1.5rem;
+  color: #999;
+}
+
+/* 회원가입 필드 감추고 보이기 */
+#signup-fields.hidden {
+  display: none;
+}
+
+/* 버튼 스타일 */
+/* auth-switch-btn (회원가입/로그인 전환 버튼) */
+#auth-switch-btn {
+  font-size: 1.1rem;            /* 글자 크기 키우기 */
+  font-weight: 600;             /* 좀 더 굵게 */
+  color: #6c9ef8;               /* 멋진 파란색 계열 */
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: color 0.3s ease, background-color 0.3s ease;
+  user-select: none;
+}
+
+#auth-switch-btn:hover {
+  color: white;
+  background-color: #6c9ef8;
+  box-shadow: 0 4px 12px rgba(108, 158, 248, 0.5);
+}
+
+/* 로그인 버튼 */
+#auth-submit-btn {
+  font-size: 1.2rem;
+  font-weight: 700;
+  background-color: #6c9ef8;
+  color: white;
+  border: none;
+  padding: 14px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  user-select: none;
+}
+
+#auth-submit-btn:hover {
+  background-color: #5589d6;
+  box-shadow: 0 6px 15px rgba(85, 137, 214, 0.7);
 }
 
 
-/* 헤더 스타일 */
-.app-header {
-    width: 100%;
-    max-width: 800px; /* main-app과 동일한 최대 너비 유지 */
-    background-color: #fff;
-    padding: 15px 30px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    margin-top: 20px; /* body의 align-items: center와 함께 상단 여백 조절 */
-}
-
-.app-header .user-profile {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-/* 내 프로필 이미지 (헤더) */
-#my-profile-img {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid #007bff;
-}
-
-/* 메인 컨텐츠 영역 */
-.app-content {
-    display: flex;
-    gap: 20px;
-    width: 100%;
-    max-width: 800px; /* header와 동일한 최대 너비 */
-    margin-bottom: 20px;
-}
-
-.sidebar {
-    flex: 1;
-    background-color: #f9f9f9;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-
-.main-content {
-    flex: 2; /* 메인 컨텐츠 영역이 더 넓게 */
-    background-color: #f9f9f9;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-
-/* 사이드바 섹션 */
-.sidebar-section {
-    margin-bottom: 20px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 15px;
-}
-
-.sidebar-section:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-    margin-bottom: 0;
-}
-
-.sidebar-section h3, .main-content h3 {
-    margin-top: 0;
-    color: #333;
-    font-size: 1.2em;
-    margin-bottom: 15px;
-}
-
-/* 사용자 목록 및 친구 목록 */
-.user-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-/* 기존 user-item은 사용자 목록 아이템에 사용되는 일반 스타일 */
-.user-item {
-    display: flex;
-    align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid #eee;
-    justify-content: space-between;
-    flex-wrap: wrap; /* 작은 화면에서 버튼 줄바꿈 */
-    gap: 10px;
-}
-
-.user-item:last-child {
-    border-bottom: none;
-}
-
-/* 사용자 목록의 프로필 이미지 (user-profile-img) */
-.user-profile-img {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-right: 10px;
-    border: 1px solid #ddd;
-    flex-shrink: 0; /* 이미지 크기 고정 */
-}
-
-.user-info {
-    flex-grow: 1; /* 남은 공간을 채움 */
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start; /* 텍스트 왼쪽 정렬 */
-    min-width: 150px; /* 정보 영역 최소 너비 */
-}
-
-.user-nickname {
-    font-weight: bold;
-    color: #007bff;
-}
-
-.user-details {
-    font-size: 0.85em;
-    color: #666;
-}
-
-.user-bio {
-    font-size: 0.8em;
-    color: #888;
-    margin-top: 5px;
-    word-break: break-word; /* 긴 텍스트 줄바꿈 */
-    max-width: 100%;
+/* 에러 메시지 */
+#error-message {
+  color: #f87171;
+  font-weight: 600;
+  margin-top: 8px;
+  min-height: 1.2em;
+  text-align: center;
 }
 
 
-/* 버튼 스타일 (기존 공통 버튼 스타일) */
-.action-btn {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 0.9em;
-    transition: background-color 0.2s ease;
-    white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+
+
+
+/* ---------- 헤더 ---------- */
+.app-header{
+  width:100%;
+  max-width:var(--max-width);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 18px;
+  border-radius:var(--radius-md);
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+  box-shadow:var(--shadow-soft);
+  margin-bottom:18px;
+  position:sticky;
+  top:12px;
+  z-index:30;
+}
+.app-header .myProfilediv{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+.myProfilediv img{
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  object-fit:cover;
+  border:2px solid rgba(255,255,255,0.04);
+  box-shadow:0 4px 12px rgba(2,6,23,0.6);
+}
+.app-header .auth-buttons button{
+  margin-left:8px;
 }
 
-.action-btn:hover {
-    background-color: #0056b3;
+/* ---------- 메인 레이아웃 ---------- */
+.app-content{
+  width:100%;
+  display:grid;
+  grid-template-columns: 320px 1fr;
+  gap:20px;
+  align-items:start;
 }
 
-.action-btn.secondary {
-    background-color: #6c757d;
+/* 사이드바 */
+.sidebar{
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius:var(--radius-lg);
+  padding:18px;
+  box-shadow:var(--shadow-soft);
+  min-height:560px;
 }
 
-.action-btn.secondary:hover {
-    background-color: #5a6268;
+/* 친구 목록 / 사용자 목록 공통 스타일 */
+.friendListDiv, .allUserDiv{
+  margin-bottom:18px;
+}
+.friendListDiv h3, .allUserDiv h3{
+  margin:0 0 10px 0;
+  font-size:16px;
+  color: #ecf2ff;
+}
+.user-refresh{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px;}
+.action-btn{
+  background:transparent;
+  border:1px solid rgba(255,255,255,0.04);
+  padding:7px 10px;
+  border-radius:10px;
+  cursor:pointer;
+  color:var(--muted);
+  transition:var(--transition);
+}
+.action-btn.primary{
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+  color:white;
+  border:none;
+  box-shadow:0 6px 18px rgba(108,158,248,0.12);
+}
+.action-btn.secondary{
+  background:var(--glass);
+  color:var(--muted);
 }
 
-.link-btn {
-    background: none;
-    border: none;
-    color: #007bff;
-    cursor: pointer;
-    text-decoration: underline;
-    font-size: 0.9em;
-    padding: 0;
+/* 리스트 스타일 */
+.user-list{
+  list-style:none;
+  padding:6px;
+  margin:0;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  max-height:520px;
+  overflow:auto;
+}
+.user-list::-webkit-scrollbar{width:8px}
+.user-list::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#2b3b4a,#1b2732);border-radius:10px}
+
+/* 유저 아이템 */
+.user-list-item{
+  background:linear-gradient(180deg, rgba(255,255,255,0.015), transparent);
+  border-radius:12px;
+  padding:10px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  transition:transform .12s ease, box-shadow .12s ease;
+  border:1px solid rgba(255,255,255,0.02);
+}
+.user-list-item:hover{
+  transform:translateY(-4px);
+  box-shadow:0 10px 30px rgba(2,6,23,0.6);
+}
+.user-item-content{ display:flex; gap:12px; align-items:center; width:100%;}
+.user-profile-img{
+  width:56px;
+  height:56px;
+  border-radius:12px;
+  object-fit:cover;
+  border:2px solid rgba(255,255,255,0.03);
+}
+.user-details-group{ flex:1; min-width:0;}
+.user-nickname-heading{
+  font-weight:600;
+  margin:0;
+  color:#f4fbff;
+  font-size:15px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.user-info-text{
+  display:block;
+  font-size:12px;
+  color:var(--muted);
+  margin-top:4px;
+}
+.user-bio-text{
+  margin:8px 0 0;
+  color: #c9d6e8;
+  font-size:13px;
+  opacity:0.9;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
-.link-btn:hover {
-    color: #0056b3;
+/* 액션 버튼 컨테이너 */
+.user-action-button-container { display:flex; gap:8px; align-items:center; }
+.user-action-button-container button{
+  padding:6px 10px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  font-weight:600;
+  font-size:13px;
+  transition:var(--transition);
+}
+.add-friend-btn{ background:linear-gradient(90deg,var(--accent), #4f7ef5); color:white; box-shadow:0 6px 18px rgba(108,158,248,0.12);}
+.add-friend-btn:hover{ transform:translateY(-2px); }
+.cancel-friend-btn{ background:transparent; color:var(--muted); border:1px solid rgba(255,255,255,0.04); }
+.cancel-friend-btn:hover{ color:var(--danger); border-color:rgba(239,68,68,0.14); }
+
+/* 로드 더보기 버튼 */
+.load-more-btn{
+  display:block;
+  width:100%;
+  margin-top:8px;
+  padding:10px;
+  border-radius:10px;
+  border:none;
+  background:linear-gradient(90deg,#2b6ffb10,#6c9ef840);
+  color:var(--accent);
+  cursor:pointer;
 }
 
-/* 배지 스타일 (친구 요청 수) */
-.badge {
-    background-color: #dc3545;
-    color: white;
-    font-size: 0.7em;
-    padding: 3px 7px;
-    border-radius: 50%;
-    margin-left: 5px;
-    vertical-align: top;
+/* ---------- 메인 채팅 영역 ---------- */
+.main-content{
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius:var(--radius-lg);
+  padding:18px;
+  min-height:560px;
+  box-shadow:var(--shadow-soft);
+  display:flex;
+  flex-direction:column;
+  gap:18px;
 }
 
 /* 필터 섹션 */
-.filter-section .filter-group {
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
+.filter-section{
+  display:flex;
+  gap:18px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.filter-group{ display:flex; gap:8px; align-items:center; }
+.filter-group label{ font-size:13px; color:var(--muted); }
+.select-custom, .auth-input, select {
+  padding:9px 10px;
+  border-radius:10px;
+  background:transparent;
+  border:1px solid rgba(255,255,255,0.04);
+  color: #e8f3ff;
 }
 
-.filter-section label {
-    flex-basis: 70px; /* 라벨 너비 고정 */
-    font-size: 0.9em;
-    color: #555;
+/* 채팅 룸 박스 (플레이스홀더) */
+.chat-room{
+  flex:1;
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+  border-radius:12px;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  align-items:flex-start;
+  overflow:auto;
+}
+.chat-room .background{
+  color:var(--muted);
 }
 
-.filter-section select {
-    flex-grow: 1; /* 드롭다운이 남은 공간 채움 */
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 0.9em;
+/* ---------- 채팅 모달 (채팅 대화창) ---------- */
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(3,7,15,0.6);
+  z-index:60;
+}
+.modal{
+  width:720px;
+  max-width:calc(100% - 40px);
+  border-radius:16px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  padding:0;
+  box-shadow:0 14px 40px rgba(2,6,23,0.7);
+  overflow:hidden;
 }
 
-/* 로그인/회원가입 폼 */
-.auth-form .input-group { /* 각 입력 필드 그룹에 대한 공통 하단 마진 */
-    margin-bottom: 10px;
-}
-#auth-submit-btn {
-    margin-top: 10px; /* 버튼 위에 간격 추가 */
-    /* 기존 버튼 스타일 유지 */
-}
-
-/* auth-switch-text 위에도 간격을 추가하여 버튼과 분리합니다. */
-.auth-switch-text {
-    margin-top: 15px; /* 전환 텍스트 위에 간격 추가 */
-    /* 기존 스타일 유지 */
-}
-/* ⭐⭐⭐ 비밀번호 표시/숨기기 관련 CSS 추가 및 조정 시작 ⭐⭐⭐ */
-/* auth-form 내의 일반 input, select, textarea 스타일 */
-.auth-form input[type="email"],
-.auth-form input[type="text"],
-.auth-form input[type="number"],
-.auth-form select,
-.auth-form textarea {
-    width: 100%; /* 부모 컨테이너에 맞게 100% */
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    box-sizing: border-box;
-    /* margin-bottom은 .input-group 또는 .password-input-container에서 관리 */
-    margin-bottom: 0;
-    font-size: 1em; /* 일관된 폰트 크기 */
-    height: 40px; /* 통일된 높이 */
+/* 채팅 메시지 영역 */
+.chat-messages{
+  height:420px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+  padding:18px;
+  overflow:auto;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
 }
 
-/* 비밀번호 입력 필드와 토글 아이콘을 감싸는 컨테이너 */
-.password-input-container {
-    position: relative; /* 자식 요소인 .toggle-password의 절대 위치 기준점 */
-    width: 100%; /* 부모 요소의 너비를 꽉 채우도록 */
-    /* .input-group에 margin-bottom이 있으므로 여기서는 추가 마진 불필요 */
+/* 말풍선 스타일 */
+.msg{
+  display:flex;
+  gap:10px;
+  align-items:flex-end;
+  max-width:75%;
+}
+.msg .avatar{ width:38px; height:38px; border-radius:10px; object-fit:cover;}
+.msg .bubble{
+  padding:10px 14px;
+  border-radius:12px;
+  font-size:14px;
+  line-height:1.3;
+  box-shadow:0 8px 20px rgba(3,8,20,0.6);
+}
+.msg.me{ margin-left:auto; flex-direction:row-reverse; }
+.msg.me .bubble{
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+  color:white;
+  border-bottom-right-radius:6px;
+}
+.msg.other .bubble{
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  color:#d9e8ff;
+  border-bottom-left-radius:6px;
 }
 
-/* .password-input-container 내부의 실제 input[type="password"] 또는 [type="text"] */
-.password-input-container .auth-input {
-    width: 100%; /* 컨테이너 너비를 꽉 채움 */
-    padding: 10px 40px 10px 10px; /* 오른쪽 패딩 40px로 아이콘 공간 확보 */
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    box-sizing: border-box;
-    margin-bottom: 0; /* 컨테이너에 포함되었으므로 입력 필드 자체 마진 제거 */
-    font-size: 1em; /* 일관된 폰트 크기 */
-    height: 40px; /* 통일된 높이 */
+/* 채팅 입력 */
+.chat-input-area{
+  display:flex;
+  gap:8px;
+  padding:14px;
+  border-top:1px solid rgba(255,255,255,0.02);
+  background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+}
+.chat-input-area input[type="text"]{
+  flex:1;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.04);
+  background:transparent;
+  color:#eaf6ff;
 }
 
-/* 비밀번호 토글 아이콘 스타일 */
-.toggle-password {
-    position: absolute;
-    right: 10px; /* 입력 필드 오른쪽 끝에서 10px 떨어지게 */
-    top: 50%; /* 컨테이너의 세로 중앙에 위치 */
-    transform: translateY(-50%); /* 정확한 세로 중앙 정렬 */
-    cursor: pointer; /* 마우스 오버 시 손가락 모양으로 변경 */
-    color: #888; /* 아이콘 색상 */
-    font-size: 1.2em; /* 아이콘 크기 (기존 유지) */
-    user-select: none; /* 아이콘 텍스트 드래그 방지 */
-    z-index: 10; /* 입력 필드 위에 오도록 */
+/* 모달 헤더 */
+.modal-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 16px;
+  border-bottom:1px solid rgba(255,255,255,0.02);
+}
+.modal-header h3{ margin:0; font-size:16px; }
+
+/* close 버튼 */
+.close-btn{
+  background:transparent;
+  border:none;
+  color:var(--muted);
+  font-size:22px;
+  cursor:pointer;
 }
 
-/* ⭐⭐⭐ 비밀번호 표시/숨기기 관련 CSS 추가 및 조정 끝 ⭐⭐⭐ */
-
-
-.auth-form button {
-    width: 100%;
-    padding: 12px;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1.1em;
-    transition: background-color 0.2s ease;
-    margin-top: 10px; /* 버튼 상단 여백 추가 (필요 시 조절) */
+/* ---------- 알림(토스트) ---------- */
+.toast-notification{
+  position:fixed;
+  right:20px;
+  bottom:24px;
+  z-index:90;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  align-items:flex-end;
+}
+.toast{
+  min-width:220px;
+  padding:10px 14px;
+  border-radius:10px;
+  background:rgba(10,16,25,0.85);
+  color:#eaf6ff;
+  box-shadow:0 10px 30px rgba(2,6,23,0.6);
+  border-left:4px solid var(--accent);
 }
 
-.auth-form button:hover {
-    background-color: #218838;
+/* 작은 화면(반응형) */
+@media (max-width:980px){
+  body{ padding:16px; }
+  .app-content{ grid-template-columns:1fr; }
+  .sidebar{ order:2; }
+  .main-content{ order:1; }
+  .app-header{ position:relative; top:0; margin-bottom:12px; }
+  .modal{ width:92%; }
 }
 
-.auth-form .error-message {
-    color: #dc3545;
-    font-size: 0.85em;
-    margin-top: -5px;
-    margin-bottom: 10px;
+/* ---------- 작은 UI 터치업 ---------- */
+.btn-base{ padding:8px 12px; border-radius:10px; border:none; cursor:pointer; }
+.btn-primary{ background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:white; }
+.btn-secondary{ background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--muted); }
+.btn-danger{ background:linear-gradient(90deg,#ff7a7a,#ef4444); color:white; }
+
+/* 깔끔한 포커스/호버 */
+button:focus, input:focus, select:focus, textarea:focus{
+  outline:none;
+  box-shadow:0 6px 18px rgba(108,158,248,0.08);
+  border-color: rgba(108,158,248,0.28);
 }
 
-.auth-form .auth-switch-text {
-    margin-top: 15px;
-    font-size: 0.9em;
-    color: #555;
-}
+/* 유틸 */
+.hidden{ display:none !important; }
+.welcome-message{ color:var(--muted); margin-top:10px; text-align:center; }
 
-/* 회원가입 시 추가 필드들을 감싸는 div */
-#signup-fields {
-    margin-top: 15px; /* 상단 여백 조정 */
-    border-top: 1px solid #eee;
-    padding-top: 15px; /* 내부 여백 조정 */
-}
-
-/* 프로필 이미지 업로드 */
-.profile-img-upload {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.profile-img-upload .upload-label {
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    color: #007bff;
-    font-size: 0.9em;
-}
-
-.profile-img-upload img {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid #ddd;
-    margin-bottom: 5px;
-}
-
-.profile-img-upload input[type="file"] {
-    display: none; /* 실제 파일 입력 필드는 숨김 */
-}
-
-/* 회원가입 미리보기 이미지 */
-#signup-profile-img-preview {
-    width: 200px;
-    height: 200px;
-    object-fit: cover;
-    border-radius: 50%;
-    margin-bottom: 15px; /* 미리보기 이미지 하단 여백 추가 */
-}
-
-/* 모달 오버레이 (공통) */
+/* end */
+/* 모달 오버레이 - 반투명 검은 배경 전체화면 */
 .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* 반투명 배경 */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000; /* 다른 콘텐츠 위에 표시 */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  transition: opacity 0.3s ease;
 }
 
+/* 모달 숨김 상태 */
+.modal-overlay.hidden {
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* 모달 박스 */
 .modal {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    width: 90%;
-    max-width: 500px; /* 모달의 최대 너비 */
-    position: relative;
-    text-align: left;
+  background: #fff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 480px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+  overflow: hidden;
+  position: relative;
 }
 
+/* 모달 헤더 */
 .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-    margin-bottom: 15px;
+  padding: 1rem 1.5rem;
+  background: #3f51b5;
+  color: white;
+  font-weight: 700;
+  font-size: 1.2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.modal-header h3 {
-    margin: 0;
-    font-size: 1.3em;
-    color: #333;
-}
-
-.modal-content {
-    padding-bottom: 15px;
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    border-top: 1px solid #eee;
-    padding-top: 15px;
-    margin-top: 15px;
-}
-
+/* 닫기 버튼 */
 .close-btn {
-    background: none;
-    border: none;
-    font-size: 1.8em;
-    color: #888;
-    cursor: pointer;
-    line-height: 1; /* 버튼 내용 정렬 */
+  background: transparent;
+  border: none;
+  font-size: 1.6rem;
+  color: white;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s;
 }
 
 .close-btn:hover {
-    color: #333;
+  color: #ff4081;
 }
 
-/* 채팅 모달 특정 스타일 */
-#chat-modal {
-    display: flex;
-    flex-direction: column;
-    height: 80vh; /* 채팅 모달 높이 */
-    max-height: 600px;
+/* 모달 콘텐츠 (스크롤 가능 영역) */
+.modal-content {
+  padding: 1rem 1.5rem;
+  overflow-y: auto;
+  flex-grow: 1;
+  font-size: 1rem;
+  color: #333;
 }
 
+/* 채팅 메시지 영역 */
 .chat-messages {
-    flex-grow: 1; /* 메시지 영역이 남은 공간을 채움 */
-    overflow-y: auto; /* 메시지가 많아지면 스크롤 */
-    border: 1px solid #eee;
-    padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 5px;
-    display: flex;
-    flex-direction: column; /* 메시지가 위에서 아래로 쌓이도록 */
-    gap: 8px; /* 메시지 간 간격 */
+  padding: 1rem;
+  overflow-y: auto;
+  flex-grow: 1;
+  background: #f5f7fa;
+  border-bottom: 1px solid #ddd;
 }
 
-.chat-message {
-    padding: 8px 12px;
-    border-radius: 15px;
-    max-width: 70%;
-    word-wrap: break-word;
-}
-
-.my-message {
-    align-self: flex-end; /* 오른쪽 정렬 */
-    background-color: #dcf8c6; /* 내 메시지 배경색 */
-    color: #333;
-}
-
-.other-message {
-    align-self: flex-start; /* 왼쪽 정렬 */
-    background-color: #f1f0f0; /* 상대방 메시지 배경색 */
-    color: #333;
-}
-
-.message-sender {
-    font-size: 0.8em;
-    color: #666;
-    margin-bottom: 2px;
-}
-
-.message-time {
-    font-size: 0.7em;
-    color: #999;
-    margin-left: 5px;
-}
-
+/* 입력 영역 */
 .chat-input-area {
-    display: flex;
-    gap: 10px;
+  display: flex;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid #ddd;
+  background: #fafafa;
 }
 
-.chat-input-area input {
-    flex-grow: 1;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
+#chat-message-input {
+  flex-grow: 1;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.2s;
 }
 
-.chat-input-area button {
-    padding: 10px 15px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
+#chat-message-input:focus {
+  border-color: #3f51b5;
 }
 
-.chat-input-area button:hover {
-    background-color: #0056b3;
+#chat-send-btn {
+  margin-left: 0.75rem;
+  background: #3f51b5;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0 1rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s;
 }
 
+#chat-send-btn:hover {
+  background: #303f9f;
+}
 
-/* 친구 요청 메시지 모달 스타일 */
+/* 친구 요청 모달 - 프로필 이미지와 버튼들 */
 .request-target-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-.request-target-info img {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1px solid #ddd;
+.request-target-info img,
+.user-profile-img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #3f51b5;
 }
 
 #request-message-input {
-    width: calc(100% - 20px);
-    height: 80px;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    resize: vertical; /* 수직 크기 조절 가능 */
-    font-size: 0.95em;
+  width: 100%;
+  min-height: 100px;       /* 원하는 높이 */
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  resize: vertical;       /* 세로 방향으로만 크기 조절 가능 */
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  background-color: #fff; /* 필요하면 배경색 지정 */
+  color: #333;
+  outline: none;
+  transition: border-color 0.3s ease;
+
 }
 
-/* 받은 친구 요청 목록 모달 스타일 */
-.incoming-requests-list .user-item {
-    padding: 10px 0;
-    justify-content: space-between;
-    align-items: flex-start; /* 아이템 시작점에 정렬 */
-    flex-wrap: nowrap; /* 줄바꿈 방지 */
-}
-
-.incoming-requests-list .user-info {
-    flex-grow: 1;
-    align-items: flex-start;
-}
-
-.incoming-requests-list .request-actions {
-    display: flex;
-    gap: 5px;
-    flex-shrink: 0; /* 버튼이 줄어들지 않도록 */
-    margin-left: 10px; /* 정보와 버튼 사이 간격 */
-}
-
-.incoming-requests-list .accept-btn {
-    background-color: #28a745;
-}
-
-.incoming-requests-list .accept-btn:hover {
-    background-color: #218838;
-}
-
-.incoming-requests-list .decline-btn {
-    background-color: #dc3545;
-}
-
-.incoming-requests-list .decline-btn:hover {
-    background-color: #c82333;
-}
-
-.incoming-requests-list .request-message {
-    font-size: 0.85em;
-    color: #666;
-    margin-left: 50px; /* 이미지 공간만큼 들여쓰기 */
-    width: calc(100% - 60px); /* 이미지와 패딩 고려 */
-    margin-top: 5px;
+#request-message-input:focus {
+  border-color: #6c9ef8;
+  box-shadow: 0 0 6px rgba(108, 158, 248, 0.7);
 }
 
 
-/* 토스트 알림 */
-.toast-notification {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(50, 50, 50, 0.9);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    font-size: 0.9em;
-    z-index: 1001;
-    opacity: 0;
-    transition: opacity 0.5s ease-in-out;
-    pointer-events: none; /* 클릭 이벤트 방지 */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
 }
 
-.toast-notification.show {
-    opacity: 1;
+.action-btn {
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s;
+  background: #3f51b5;
+  color: white;
 }
 
-/* 숨김 클래스 */
-.hidden {
-    display: none ;
+.action-btn.secondary {
+  background: #e0e0e0;
+  color: #333;
 }
 
-/* 반응형 디자인 */
-@media (max-width: 768px) {
-    .main-app {
-        flex-direction: column;
-        padding: 15px;
-    }
-
-    .app-header {
-        padding: 10px 15px;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .app-content {
-
-        padding: 0 15px;
-    }
-
-    .sidebar, .main-content {
-        width: 100%;
-        padding: 15px;
-    }
-
-    .modal {
-        padding: 15px;
-    }
-
-    .chat-messages {
-        height: 60vh;
-    }
+.action-btn:hover {
+  background: #303f9f;
 }
 
-@media (max-width: 480px) {
-    .auth-container, .main-app {
-        padding: 20px;
-    }
-
-    .action-btn {
-        padding: 6px 12px;
-        font-size: 0.85em;
-    }
-
-    .auth-form input, .auth-form select, .auth-form textarea {
-        font-size: 0.9em;
-    }
+.action-btn.secondary:hover {
+  background: #bdbdbd;
 }
 
-/* ★★★ 새로고침 버튼 애니메이션 및 로딩 상태 관련 추가 CSS ★★★ */
-
-/* 사용자 목록 헤더 레이아웃 (새로고침 버튼용) */
-.user-list-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px; /* 헤더 아래 간격 */
-    padding: 0 10px; /* 선택 사항: 가로 패딩 */
+#user-list .user-list-item[data-is-friend="true"]{
+    display: none;
 }
 
-/* 보조 액션 버튼 내 아이콘 특정 스타일 */
-.action-btn.secondary i {
-    margin-right: 5px; /* 아이콘과 텍스트 사이 간격 */
+/*------채팅방-------*/
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* 화면 전체 높이 */
+  width: 100%
+  margin: 0 auto;
+  border: 1px solid #ccc;
 }
 
-/* Font Awesome 아이콘 회전 애니메이션 */
-.fa-sync-alt.spinning {
-    animation: spin 1s infinite linear; /* 1초, 무한 반복, 선형 회전 */
+.chat-tabs {
+  display: flex;
+  border-bottom: 2px solid #007bff;
+  background-color: #f5f5f5;
+  padding: 5px;
+  gap: 8px;
+  overflow-x: auto;
 }
 
-/* 회전 애니메이션 키프레임 */
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.chat-tab {
+  background: none;
+  border: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.2s;
 }
 
-/* 버튼이 로딩 상태일 때의 스타일 */
-.action-btn.loading {
-    opacity: 0.7; /* 약간 투명하게 만듦 */
-    cursor: not-allowed; /* 클릭 불가능함을 나타내는 커서 변경 */
+.chat-tab.active {
+  border-bottom: 2px solid #007bff;
+  color: #007bff;
+  font-weight: 700;
 }
 
-#refresh-users-btn {
-    background-color: #28a745; /* 초록색 계열 */
+.chat-messages {
+  flex: 1; /* 남은 영역 전부 차지 */
+  padding: 10px;
+  overflow-y: auto;
+  background-color: #fff;
+  border-bottom: 1px solid #ccc;
 }
 
-#refresh-users-btn:hover {
-    background-color: #218838; /* 호버 시 더 진한 초록색 */
+.message {
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: 15px;
+  max-width: 70%;
+  word-wrap: break-word;
 }
 
-/* 요청 취소 버튼 색상: 빨간색 (기존 .action-btn.secondary와 충돌 방지) */
-/* 이전에 제안된 .cancel-friend-request-btn 클래스가 더 높은 우선순위를 가질 수 있도록 배치 */
-/* 만약 이 클래스들이 .action-btn.secondary와 함께 사용된다면,
-   .action-btn.secondary.cancel-friend-request-btn 처럼 조합하여 우선순위를 높일 수 있습니다.
-   하지만 우리는 Tailwind를 제거했으므로, 단독 클래스명을 사용하는 것이 일반적입니다. */
-
-/* --- 동적으로 생성되는 사용자 목록 항목 스타일 (Tailwind 변환) --- */
-
-/* 기본 버튼 스타일 (여러 버튼에서 공통으로 사용될 수 있는 스타일) */
-.base-button {
-    padding: 4px 12px; /* Tailwind의 px-3 (0.75rem), py-1 (0.25rem)에 해당 */
-    border-radius: 6px; /* Tailwind의 rounded-md (0.375rem)에 해당 */
-    font-size: 0.875rem; /* Tailwind의 text-sm (14px)에 해당 */
-    color: white;
-    border: none; /* 기본 테두리 제거 */
-    cursor: pointer; /* 클릭 가능한 커서 모양 */
-    transition: background-color 0.2s ease-in-out; /* 배경색 변화에 부드러운 전환 효과 */
+.message.self {
+  background-color: #007bff;
+  color: white;
+  margin-left: auto;
+  border-bottom-right-radius: 3px;
 }
 
-/* '요청 보냄 (취소)' 버튼 */
-/* 이전에 정의된 .action-btn.secondary.cancel-friend-request-btn 대신 이 단독 클래스 사용 */
-.cancel-friend-request-btn {
-    /* .base-button에서 기본 스타일 상속 */
-    background-color: #ef4444; /* Tailwind red-500에 해당하는 색상 */
+.message.other {
+  background-color: #e5e5ea;
+  color: black;
+  margin-right: auto;
+  border-bottom-left-radius: 3px;
 }
 
-.cancel-friend-request-btn:hover {
-    background-color: #dc2626; /* Tailwind red-600에 해당하는 색상 */
+.chat-input {
+  padding: 12px;
+  border: none;
+  border-top: 1px solid #ccc;
+  font-size: 16px;
+  outline: none;
 }
 
-/* '요청 받음' 버튼 (비활성화 상태) */
-.received-request-btn {
-    background-color: #3b82f6; /* Tailwind blue-500에 해당하는 색상 */
-    color: white;
-    padding: 4px 12px;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    cursor: not-allowed; /* 마우스 오버 시 금지 표시 */
-    opacity: 0.7; /* 비활성화된 느낌을 주기 위한 투명도 */
-    border: none;
-}
-
-/* '친구 요청' 버튼 (기본 액션 버튼) */
-.primary-action-btn {
-    /* .base-button에서 기본 스타일 상속 */
-    background-color: #22c55e; /* Tailwind green-500에 해당하는 색상 */
-}
-
-.primary-action-btn:hover {
-    background-color: #16a34a; /* Tailwind green-600에 해당하는 색상 */
-}
-
-/* 사용자 목록 항목 (li.className = 'user-list-item') */
-.user-list-item {
-    display: flex; /* flex */
-    align-items: center; /* items-center */
-    justify-content: space-between; /* justify-between */
-    padding: 16px; /* p-4 (1rem = 16px) */
-    border-bottom: 1px solid #e5e7eb; /* border-b border-gray-200 */
-}
-
-/* 사용자 정보와 프로필 이미지를 감싸는 컨테이너 (div.className = 'user-item-content') */
-.user-item-content {
-    display: flex; /* flex */
-    align-items: center; /* items-center */
-    margin-right: 12px; /* space-x-3 (항목 간 간격) */
-    flex-grow: 1; /* 남은 공간을 채우도록 설정 (필요 시) */
-}
-
-/* 사용자 상세 정보를 감싸는 컨테이너 (div.className = 'user-details-group') */
-/* 특별한 Tailwind 클래스 변환은 없지만, 구조적 필요에 의해 유지 */
-
-/* 닉네임 제목 (h4.className = 'user-nickname-heading') */
-.user-nickname-heading {
-    font-weight: 600; /* font-semibold */
-    font-size: 1.125rem; /* text-lg (18px) */
-    margin: 0; /* 기본 마진 제거 */
-    padding: 0; /* 기본 패딩 제거 */
-}
-
-/* 사용자 정보 텍스트 (span.className = 'user-info-text') */
-.user-info-text {
-    font-size: 0.875rem; /* text-sm (14px) */
-    color: #6b7280; /* gray-500 */
-    display: block; /* 새 줄에서 시작하도록 블록 레벨 요소로 설정 */
-}
-
-/* 사용자 소개 (p.className = 'user-bio-text') */
-.user-bio-text {
-    font-size: 0.875rem; /* text-sm (14px) */
-    color: #374151; /* gray-700 */
-    margin-top: 4px; /* 위쪽 여백 */
-}
-
-/* 사용자 목록 메시지 (p-4 text-gray-500 / p-4 text-red-500) */
-/* 이들은 직접적인 HTML 문자열에 인라인으로 들어가는 경우가 많으므로,
-   기존 .user-list li 스타일을 확장하여 처리 */
-.user-list li.p-4 { /* p-4 클래스가 HTML에 직접 들어간 경우 */
-    padding: 16px;
-}
-
-.user-list li.text-gray-500 {
-    color: #6b7280; /* gray-500 */
-}
-
-.user-list li.text-red-500 {
-    color: #ef4444; /* red-500 */
-}
+/*------chat-message----*/

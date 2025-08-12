@@ -1,3 +1,5 @@
+// backend/routes/userInfoRoutes.js
+
 const { BlobServiceClient, StorageSharedKeyCredential, generateBlobSASQueryParameters, BlobSASPermissions } = require('@azure/storage-blob');
 const { AZURE_CONTAINER_NAME, AZURE_STORAGE_ACCOUNT_KEY, AZURE_STORAGE_ACCOUNT_NAME } = require('../config/env');
 const {db} = require('../config/firebaseAdmin');

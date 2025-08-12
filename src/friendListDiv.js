@@ -2,10 +2,10 @@ import { db } from './firebase-init.js';
 import { doc, collection, onSnapshot, getDocs, query, where, documentId } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import AppUI from './AppUI.js';
 import { currentUserUid, setCurrentUser, currentUserData } from './user-data.js';
-import {renderUserItem,getActionButtonHtml} from './allUserDiv.js';
-import {deleteFriend} from './friendRequest.js';
-import {getGenderLabel,getAgeGroupLabelFromBirthYear,getRegionLabel} from './utils.js';
-import {openChatRoom} from './chat.js';
+import { renderUserItem,getActionButtonHtml} from './allUserDiv.js';
+import { deleteFriend} from './friendRequest.js';
+import { getGenderLabel,getAgeGroupLabelFromBirthYear,getRegionLabel} from './utils.js';
+import { openChatRoom,getDirectMessageRoomId} from './chat.js';
 let allFriendIds  = [];
 let currentPage = 0;
 let FRIEND_PER_PAGE = 10;
@@ -32,8 +32,10 @@ function bindFriendListEvents() {
           if (!friendItem) return;
           const friendId = friendItem.id.replace('user-', '');
           const friendName = friendItem.querySelector('.user-nickname-heading')?.textContent || '친구';
-
-          openChatRoom(friendId, friendName);  // 이 함수는 아래에 구현하세요
+          const roomId = getDirectMessageRoomId(currentUserUid,friendId);
+          console.log('생성된 방 ID:', roomId);
+            console.log('채팅방 이름:', friendName);
+          openChatRoom(roomId, friendName);  // 이 함수는 아래에 구현하세요
         });
     }
 }

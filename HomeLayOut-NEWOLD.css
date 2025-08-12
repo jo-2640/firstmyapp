@@ -1,5 +1,5 @@
-/* HomeLayOut.css — Chatty UI 스타일 (최종 버전) */
-@import url('css/modals.css');
+/* HomeLayOut.css — Chatty UI 스타일 (모던, 반응형, 채팅 친화적) */
+@import url('css/modal.css');
 /* ---------- 변수 ---------- */
 :root {
   --bg: #0f1724;
@@ -31,7 +31,7 @@ html, body {
   background: linear-gradient(180deg, #081223 0%, #07111b 100%);
   color: #e6eef8;
   font-size: 16px;
-  overflow: hidden; /* body의 스크롤을 막아줍니다. */
+  overflow: hidden;
 }
 
 body {
@@ -250,7 +250,8 @@ body {
   background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
   box-shadow: var(--shadow-soft);
   margin-bottom: 18px;
-  /* position: sticky와 top을 삭제하여 Flexbox 흐름을 유지합니다. */
+  position: sticky;
+  top: 12px;
 }
 
 .app-header .myProfilediv {
@@ -272,7 +273,7 @@ body {
   margin-left: 8px;
 }
 
-/* ---------- 메인 레이아웃 (수정) ---------- */
+/* ---------- 메인 레이아웃 ---------- */
 .app-content {
   flex: 1;
   width: 100%;
@@ -280,7 +281,6 @@ body {
   grid-template-columns: 3fr 7fr;
   grid-template-rows: 1fr;
   gap: 20px;
-  overflow: hidden; /* ⭐ 중요! app-content가 body를 벗어나지 않도록 막습니다. */
 }
 
 /* 사이드바 */
@@ -290,7 +290,7 @@ body {
   border-radius: var(--radius-lg);
   padding: 18px;
   box-shadow: var(--shadow-soft);
-  overflow-y:auto;
+  min-height: 560px;
 }
 
 /* 친구 목록 / 사용자 목록 */
@@ -342,7 +342,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-
+  max-height: 520px;
   overflow: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.1) transparent;
@@ -473,7 +473,7 @@ body {
   cursor: pointer;
 }
 
-/* ---------- 메인 지역(필터, 채팅창) (수정) ---------- */
+/* ---------- 메인 지역(필터, 채팅창) ---------- */
 .main-content {
   flex-grow: 1;
   display: flex;
@@ -483,7 +483,7 @@ body {
   box-shadow: var(--shadow-soft);
   flex-direction: column;
   gap: 18px;
- min-height: 0; /* ⭐ 중요! 부모가 늘어나지 않도록 막습니다. */
+  height: 100%;
 }
 
 /* 필터 섹션 */
@@ -547,18 +547,20 @@ body {
   }
 }
 
-/* ---------- 채팅방 (최종) ---------- */
+/* ---------- 채팅방 ---------- */
 .chat-container {
-  flex: 1; /* 남은 공간을 모두 차지하도록 */
+  flex: 1;
   display: flex;
   flex-direction: column;
- min-height: 0; /* ⭐ 중요! 부모가 늘어나지 않도록 막습니다. */
+  height: 100%; /* 부모 높이를 완전히 채움 */
+  max-height: calc(100vh - 200px); /* 헤더와 입력창 공간을 고려한 최대 높이 */
+  background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0));
 }
 
 /* 채팅 탭 */
 .chat-tabs {
   display: flex;
-  height: 58px; /* height로 고정 */
+  min-height: 58px;
   gap: 10px;
   overflow-x: auto;
   padding: 0.5rem 1rem;
@@ -566,6 +568,7 @@ body {
   border-bottom: 1px solid #ddd;
   border-radius: var(--radius-md);
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 5px;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -601,27 +604,24 @@ body {
   font-weight: 700;
 }
 
-/* 채팅방 목록 (메시지 영역을 감싸는 부모) */
+/* 채팅방 목록 */
 .chat-rooms {
-  flex: 1; /* chat-container의 남은 공간을 모두 차지 */
-  display: flex;
-  flex-direction: column;
+  flex: 1;
   background-color: #072441;
   border-radius: var(--radius-md);
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
- min-height: 0; /* ⭐ 중요! 부모가 늘어나지 않도록 막습니다. */
- overflow: hidden;
-  padding: 10px;
+
+  max-height: calc(100% - 68px); /* 탭 높이(58px) + 마진(10px) 제외 */
 }
 
-/* 채팅방 (개별 탭의 내용) */
+/* 채팅방 */
 .chat-room {
   display: none;
-  flex: 1; /* chat-rooms의 남은 공간을 모두 차지 */
+  flex: 1;
   flex-direction: column;
   background: #e3f2fd;
   border-radius: var(--radius-md);
-   min-height: 0; /* ⭐ 중요! 부모가 늘어나지 않도록 막습니다. */;
+  max-height: 100%; /* 부모 높이에 맞춤 */
 }
 .chat-room.hidden {
   display: none;
@@ -630,12 +630,12 @@ body {
   display: flex;
 }
 
-/* 채팅 메시지 영역 (스크롤이 필요한 부분) */
+/* 채팅 메시지 영역 */
 .chat-messages {
-  flex:1;
+  flex: 1;
   display: flex;
   flex-direction: column;
-
+  justify-content: flex-end;
   background: #bbdefb;
   color: #222;
   padding: 10px 15px;
@@ -643,8 +643,8 @@ body {
   border-radius: var(--radius-md);
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   word-wrap: break-word;
-  overflow-y: auto; /* ⭐ 스크롤바는 여기에만! */
-   min-height: 0; /* ⭐ 중요! 부모가 늘어나지 않도록 막습니다. */
+  overflow-y: auto;
+  max-height: calc(100% - 70px); /* 입력창과 마진 고려 */
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.1) #111e30;
 }
@@ -673,32 +673,29 @@ body {
   line-height: 1.4;
 }
 
-
-/* public/style.css */
-
-.chat-messages {
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  list-style-type: none;
+.chat-message.self {
+  background: #90caf9;
+  margin-left: auto;
+  color: #111;
+  font-weight: 600;
+  text-align: right;
+  animation: popIn 0.3s ease forwards;
+  transform-origin: bottom right;
+  opacity: 1;
+  transform: scale(0.5);
 }
 
-.chat-messages > div {
-  margin-bottom: 8px;
-  padding: 8px 12px;
-  border-radius: 20px;
-  background-color: #e0e0e0;
-  align-self: flex-start;
+.chat-message:not(.self) {
+  background: #ffffff;
+  margin-right: auto;
+  color: #222;
+  text-align: left;
+  animation: popIn 0.3s ease forwards;
+  transform-origin: bottom left;
+  opacity: 0;
+  transform: scale(0.5);
 }
 
-.chat-messages > div.self {
-  background-color: #007bff;
-  color: white;
-  align-self: flex-end;
-}
-.chat-message:first-child {
-  margin-top: auto; /* ⭐ 첫 번째 메시지를 아래로 밀어냅니다. */
-}
 @keyframes popIn {
   to {
     opacity: 1;
@@ -711,7 +708,7 @@ body {
   display: flex;
   gap: 10px;
   margin-top: 15px;
-  height: 60px; /* height로 고정 */
+  max-height: 60px; /* 입력창 높이 제한 */
 }
 
 .chat-input-container input.chat-input {
@@ -783,7 +780,7 @@ body {
     height: 18px;
   }
   .chat-container {
-    max-height: calc(100vh - 150px);
+    max-height: calc(100vh - 150px); /* 모바일에서 헤더와 여백 고려 */
   }
 }
 

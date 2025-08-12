@@ -1,79 +1,151 @@
 // backend/server.js
+// ----------------------------------------------------
+// 1. 필요한 모듈 불러오기
+// ----------------------------------------------------
 const express = require('express');
 const cors = require('cors');
-const http = require('http');            // 수정
-const { Server } = require('socket.io'); // 수정
-// 1. 환경 설정 및 서비스 초기화 모듈 로드
-// 이 모듈들은 자체적으로 초기화 로직을 실행하거나 필요한 인스턴스를 내보냅니다.
-require('./config/env');          // 환경 변수 로드 및 유효성 검사 (앱 전역에서 사용)
-require('./config/firebaseAdmin'); // Firebase Admin SDK 초기화
-require('./config/azureStorage');  // Azure Storage 클라이언트 초기화 및 컨테이너 준비
+const http = require('http');
+const { Server } = require('socket.io');
+const { getAuth } = require('firebase-admin/auth');
 
-// 2. API 라우트 모듈 불러오기
-// 각 파일은 특정 기능 그룹의 API 엔드포인트를 정의합니다.
+// 2. 환경 설정 및 서비스 초기화 모듈 로드
+// 이 모듈들은 자체적으로 초기화 로직을 실행합니다.
+// ⭐⭐⭐ 이 라인을 다시 추가했습니다. ⭐⭐⭐
+require('./config/env'); 
+require('./config/firebaseAdmin');
+require('./config/azureStorage');
+
+// 3. API 라우트 모듈 불러오기
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const storageRoutes = require('./routes/storageRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const userInfoRoutes = require('./routes/userInfoRoutes');
-const app = express();
-const port = process.env.PORT || 3000; // 환경 변수에서 포트 가져오기
 
-// 3. 공통 미들웨어 설정
-// 모든 요청에 대해 CORS 및 JSON 본문 파싱을 활성화합니다.
+const app = express();
+const port = process.env.PORT || 3000;
+
+// 4. 공통 미들웨어 설정
 const corsOptions = {
-    origin: 'http://localhost:5173', // 프론트엔드 (Vite) 개발 서버 주소
+    origin: 'http://localhost:5173',
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
     credentials: true,
     optionsSuccessStatus: 204
 };
 app.use(cors(corsOptions));
-app.use(express.json()); // 요청 본문을 JSON으로 파싱
+app.use(express.json());
 
-// 4. API 라우트 연결
-// 각 라우트 모듈을 '/api' 경로 접두사 아래에 마운트합니다.
-app.use('/api', authRoutes);    // 예: /signup/finalize
-app.use('/api', userRoutes);    // 예: /api/getBirthYearRange
-app.use('/api', storageRoutes); // 예: /api/getBlobSasToken
-app.use('/api', adminRoutes);   // 예: /api/delete-all-data
-app.use('/api', userInfoRoutes); // 예: /api/getProfileImageUrl 
-// 5. 서버 시작
+// 5. API 라우트 연결
+app.use('/api', authRoutes);
+app.use('/api', userRoutes);
+app.use('/api', storageRoutes);
+app.use('/api', adminRoutes);
+app.use('/api', userInfoRoutes);
 
-
+// ----------------------------------------------------
+// 6. Socket.IO 설정 및 이벤트 핸들러
+// ----------------------------------------------------
 const server = http.createServer(app);
+const userIdToSocketId = new Map();
+
 const io = new Server(server, {
-    cors:{
-        origin: "*",
+    cors: {
+        // ⭐⭐⭐ Express CORS 설정과 일치시켰습니다. ⭐⭐⭐
+        origin: 'http://localhost:5173',
     }
-}); 
-// 여기서 io 이벤트 핸들러 등록 가능
-io.on('connection', (socket) => {
-  console.log('새 클라이언트 접속:', socket.id);
-
-  // 예) 메시지 이벤트 처리
-  socket.on('chat message', (msg) => {
-    console.log('메시지 받음:', msg);
-    io.emit('chat message', msg); // 모든 클라이언트에 메시지 전달
-  });
-
-  socket.on('disconnect', () => {
-    console.log('클라이언트 접속 종료:', socket.id);
-  });
 });
+
+// ⭐⭐ 인증 미들웨어: 모든 소켓 연결 시 토큰을 검증합니다.
+io.use(async (socket, next) => {
+    const token = socket.handshake.auth.token;
+
+    // ⭐ 소켓 연결 요청이 도착했는지 확인하는 로그
+    console.log('[Socket Auth] 소켓 연결 요청 수신'); 
+
+    if (!token) {
+        console.error('[Socket Auth] 인증 토큰이 없습니다. 연결 거부.');
+        return next(new Error('인증 토큰이 없습니다.'));
+    }
+
+    try {
+        console.log('[Socket Auth] 토큰 검증 시작:', token.substring(0, 30) + '...');
+        const decodedToken = await getAuth().verifyIdToken(token);
+        
+        // ⭐ 토큰 검증에 성공했을 때만 이 로그가 출력됩니다.
+        console.log(`[Socket Auth] 토큰 검증 성공. 유저: ${decodedToken.email}`);
+        
+        socket.user = {
+            userId: decodedToken.uid,
+            username: decodedToken.name || decodedToken.email,
+            email: decodedToken.email
+        };
+        next();
+    } catch (error) {
+        // ⭐ 토큰 검증에 실패했을 때 어떤 에러가 발생했는지 확인합니다.
+        console.error('[Socket Auth] 토큰 검증 실패:', error.message);
+        next(new Error('유효하지 않은 토큰입니다.'));
+    }
+});
+
+// ⭐⭐ 주요 소켓 이벤트 핸들러: 인증된 사용자만 처리합니다.
+io.on('connection', (socket) => {
+    const userId = socket.user.userId;
+    userIdToSocketId.set(userId, socket.id);
+    console.log(`${socket.user.username} (ID: ${userId}) 님이 접속했습니다.`);
+
+    socket.on('disconnect', () => {
+        userIdToSocketId.delete(userId);
+        console.log(`${socket.user.username} 님이 접속을 종료했습니다.`);
+    });
+    
+    socket.on('join room', (roomId) => {
+        socket.join(roomId);
+        console.log(`${socket.user.username}가 ${roomId} 방에 참여했습니다.`);
+    });
+
+    socket.on('chat message', (data) => {
+        const senderId = socket.user.userId;
+        const senderUsername = socket.user.username;
+        const roomId = data.roomId;
+        
+        // 서버에서 메시지 Payload를 생성합니다.
+        const messagePayload = {
+            message: data.message,
+            roomId: roomId,
+            senderId: senderId,
+            senderName: senderUsername,
+        };
+
+        // 1. 메시지를 방 전체에 브로드캐스트 (나와 친구 모두에게 보임)
+        io.to(roomId).emit('chat message', messagePayload);
+        
+        // 2. 상대방이 온라인이지만, 현재 채팅방에 있는지 확인
+        const [user1Id, user2Id] = roomId.split('_').sort();
+        const recipientId = (user1Id === senderId) ? user2Id : user1Id;
+        const recipientSocket = io.sockets.sockets.get(userIdToSocketId.get(recipientId));
+        
+        // 3. 상대방이 방에 없으면, 알림만 보냅니다.
+        if (recipientSocket && !recipientSocket.rooms.has(roomId)) {
+            console.log(`[알림 전송] ${senderUsername} -> ${recipientId}: 방에 없는 상대방에게 알림 전송`);
+            io.to(recipientSocket.id).emit('notify message', {
+                roomId: roomId,
+                senderId: senderId,
+                senderName: senderUsername,
+                message: data.message
+            });
+        }
+        
+        // 4. 상대방이 오프라인이면 메시지를 전달할 수 없음을 알립니다.
+        if (!recipientSocket) {
+            console.log(`[오프라인] ${senderUsername} -> ${recipientId}: 메시지를 전달할 수 없습니다.`);
+        }
+    });
+});
+
+// ----------------------------------------------------
+// 7. 서버 시작
+// ----------------------------------------------------
 server.listen(port, () => {
     console.log(`서버가 http://localhost:${port} 에서 실행 중입니다.`); 
     console.log(`애플리케이션이 성공적으로 초기화되었습니다.`);
-    // 개발 편의를 위한 주요 엔드포인트 로그
-    console.log(`주요 API 엔드포인트:`);
-    console.log(`  POST/signup/finalize`);
-    console.log(`  POST /signup/create-user`);
-    console.log(`  POST /signup/get-profile-sas-token`);
-    console.log(`  GET /api/getBirthYearRange`);
-    console.log(`  POST /api/getBlobSasToken`);
-    console.log(`  POST /api/getProfileImageUrl`);
-    console.log(`  POST /api/delete-all-data`);
-    console.log(`  POST /api/cuarrent-year`);
-    console.log(`  POST /api/getProfileImageUrl`);
-    console.log(new Date().toUTCString())
-    
 });

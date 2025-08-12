@@ -11,11 +11,11 @@ import { handleLogin, handleLogout, updateAuthUIForMode, setupAuthListener, init
 import { LOCAL_STORAGE_KEYS,SERVER_BASE_URL, BIRTH_YEAR_RANGE, initializeConstants } from './src/constants.js';
 import AppUI from './src/AppUI.js';
 import { filterDisplayUsers, applyUserFilters } from './src/allUserDiv.js';
-
 import { getDefaultProfileImage, showToast, resizeAndOptimizeImg, fetchCurrentYearFromServer, detailedAgeGroups, fetchBirthYearRangeFromServer} from './src/utils.js';
 import { initializeMyProfileDivUI, clearMyProfileUI } from './src/myProfileDiv.js';
 import { fillSignUpFieldsWithRandomDataTemp } from './src/temp.js';
-
+import { initializeSocket } from './src/socketIO.js';
+import { openChatRoom } from './src/chat.js';
 let minBirthYear = 1980; //임시 변수이나 지우면 안됨~서버값
 let serverCurrentYear = new Date().getFullYear(); //임시변수이나 지우면안됨~ 서버값
 
@@ -332,232 +332,248 @@ function updateMinAgeOptions(minSelect, maxSelect) {
 
   
 //////////////////////////////////////////////
-    document.addEventListener('DOMContentLoaded', async () => {
-        try {
-            AppUI.initialize();
-            console.log("AppUI 객체 초기화 완료:", AppUI);
+document.addEventListener('DOMContentLoaded', async () => {
 
-            await initializeConstants();   
-            setupAuthListener();
-            
-           console.log(BIRTH_YEAR_RANGE.minBirthYear);
-            updateBirthYearDropdownOptions(AppUI.signupBirthYearSelect, BIRTH_YEAR_RANGE.minBirthYear, BIRTH_YEAR_RANGE.maxBirthYear);
-           
-        } catch (error) {
-            console.error(`[script.js] 연도 정보를 가져오는데 실패했습니다: ${error.message}`);
-            showToast(`연도 정보를 가져올 수 없습니다: ${error.message}`, 'error');
-            if (AppUI.signupBirthYearSelect) {
-                AppUI.signupBirthYearSelect.disabled = true;
-                AppUI.signupBirthYearSelect.innerHTML = '<option value="">연도 불러오기 실패</option>';
-            }
+
+    try {
+        AppUI.initialize();
+        console.log("AppUI 객체 초기화 완료:", AppUI);
+
+        await initializeConstants();
+        setupAuthListener();
+
+       console.log(BIRTH_YEAR_RANGE.minBirthYear);
+       updateBirthYearDropdownOptions(AppUI.signupBirthYearSelect, BIRTH_YEAR_RANGE.minBirthYear, BIRTH_YEAR_RANGE.maxBirthYear);
+       const authToken = localStorage.getItem('authToken');
+       if (authToken) {
+               initializeSocket();
+                 localStorage.setItem('authToken', authToken);
+                 localStorage.setItem('myUserId', currentUserUid);
+                 localStorage.setItem('myUsername', currentUserNickname);
+       } else {
+               console.log('인증 토큰이 없습니다. 소켓 연결을 건너뜁니다.');
+               // 토큰이 없으므로 로그인 페이지로 이동시킬 수도 있습니다.
+               // window.location.href = '/login.html';
+       }
+
+    } catch (error) {
+        console.error(`${error.message}`);
+        showToast(`${error.message}`, 'error');
+        if (!AppUI.signupBirthYearSelect) {
+            AppUI.signupBirthYearSelect.disabled = true;
+            AppUI.signupBirthYearSelect.innerHTML = '<option value="">연도 불러오기 실패</option>';
         }
+    }
 
-        updateAgeGroupDropdownOptions(AppUI.signupMinAgeSelect, 'min');
-        updateAgeGroupDropdownOptions(AppUI.signupMaxAgeSelect, 'max');
+    updateAgeGroupDropdownOptions(AppUI.signupMinAgeSelect, 'min');
+    updateAgeGroupDropdownOptions(AppUI.signupMaxAgeSelect, 'max');
 
-        
 
-        if (AppUI.deleteAllDataBtn) {
-            AppUI.deleteAllDataBtn.addEventListener('click', async () => {
-                if (!confirm('경고: 정말로 모든 사용자 계정과 Firestore 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다!')) return;
-                if (!confirm('최종 확인: 모든 데이터가 영구적으로 삭제됩니다. 계속하시겠습니까?')) return;
-                showToast('모든 데이터 삭제 요청 중...', 'info');
-                try {
-                    const response = await fetch('http://localhost:3000/api/delete-all-data', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    const data = await response.json();
-                    if (response.ok && data.success) {
-                        showToast(data.message, 'success');
-                        console.log('데이터 삭제 성공:', data.message);
-                        if (auth.currentUser) {
-                            // ✅ 최신 모듈 방식으로 로그아웃 함수 호출
-                            await signOut(auth);
-                            console.log("[Auth Service] 모든 데이터 삭제 후 Firebase 세션 로그아웃 완료.");
-                        }
-                    } else {
-                        const errorMessage = data.message || '데이터 삭제 실패';
-                        showToast(errorMessage, 'error');
-                        console.error('데이터 삭제 실패:', errorMessage);
+
+    if (AppUI.deleteAllDataBtn) {
+        AppUI.deleteAllDataBtn.addEventListener('click', async () => {
+            if (!confirm('경고: 정말로 모든 사용자 계정과 Firestore 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다!')) return;
+            if (!confirm('최종 확인: 모든 데이터가 영구적으로 삭제됩니다. 계속하시겠습니까?')) return;
+            showToast('모든 데이터 삭제 요청 중...', 'info');
+            try {
+                const response = await fetch('http://localhost:3000/api/delete-all-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    showToast(data.message, 'success');
+                    console.log('데이터 삭제 성공:', data.message);
+                    if (auth.currentUser) {
+                        // ✅ 최신 모듈 방식으로 로그아웃 함수 호출
+                        await signOut(auth);
+                        console.log("[Auth Service] 모든 데이터 삭제 후 Firebase 세션 로그아웃 완료.");
                     }
-                } catch (error) {
-                    console.error("클라이언트에서 데이터 삭제 API 호출 오류:", error);
-                    showToast(`데이터 삭제 중 네트워크 오류 발생: ${error.message}`, 'error');
-                }
-            });
-        } else {
-            console.error("오류: ID 'deleteAllDataBtn'을 가진 요소를 찾을 수 없습니다.");
-        }
-
-        if (AppUI.btnLogout) {
-            AppUI.btnLogout.addEventListener('click', handleLogout);
-        } else {
-            console.error("btnLogout을 찾을 수 없습니다! HTML ID를 확인하세요.");
-        }
-
-        if (AppUI.authSubmitBtn) {
-            AppUI.authSubmitBtn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const currentModeIsSignUp = getSignUpMode();
-                console.log(`authSubmitBtn 클릭됨. 현재 모드: ${currentModeIsSignUp ? '회원가입' : '로그인'}`);
-                AppUI.authSubmitBtn.disabled = true;
-               const originalText = AppUI.authSubmitBtn.textContent;
-                AppUI.authSubmitBtn.textContent = currentModeIsSignUp ? '가입 중...' : '로그인 중...';
-                try {
-                    if (currentModeIsSignUp) {
-                        await handleSignup(e);
-                    } else {
-                        await handleLogin();
-                    }
-                } catch (error) {
-                    console.error("인증 처리 중 오류 발생:", error);
-                } finally {
-                    AppUI.authSubmitBtn.disabled = false;
-                    AppUI.authSubmitBtn.textContent = originalText;
-                }
-            });
-        } else {
-            console.error("authSubmitBtn을 찾을 수 없습니다! HTML ID를 확인하세요.");
-        }
-
-        if (AppUI.authSwitchBtn) {
-            AppUI.authSwitchBtn.addEventListener('click', () => {
-                toggleSignUpMode();
-            });
-        } else {
-            console.error("authSwitchBtn을 찾을 수 없습니다! HTML ID를 확인하세요.");
-        }
-
-        if (AppUI.signupGenderSelect && AppUI.profileImageInput && AppUI.profileImagePreview) {
-            AppUI.signupGenderSelect.addEventListener('change', () => {
-                const selectedGender = AppUI.signupGenderSelect.value;
-                if (AppUI.profileImageInput.files.length === 0) {
-                    AppUI.profileImagePreview.src = getDefaultProfileImage(selectedGender);
-                }
-            });
-        }
-
-        if (AppUI.signupMinAgeSelect && AppUI.signupMaxAgeSelect) {
-            AppUI.signupMinAgeSelect.addEventListener('change', () => {
-                updateMinAgeOptions(AppUI.signupMinAgeSelect, AppUI.signupMaxAgeSelect);
-            });
-
-            AppUI.signupMaxAgeSelect.addEventListener('change', () => {
-                updateMaxAgeOptions(AppUI.signupMinAgeSelect,AppUI.signupMaxAgeSelect);
-            });
-        }
-
-        if (AppUI.profileImageInput && AppUI.profileImagePreview) {
-            AppUI.profileImageInput.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-
-                // 이전 미리보기 URL이 있다면 메모리에서 해제하고, 이벤트 리스너를 정리합니다.
-                const existingObjectURL = AppUI.profileImagePreview.src;
-                if (existingObjectURL && existingObjectURL.startsWith('blob:')) {
-                    URL.revokeObjectURL(existingObjectURL);
-                    AppUI.profileImagePreview.removeAttribute('src'); // 무한 루프 방지를 위해 src 제거
-                    console.log("기존 Object URL 해제 및 src 제거 완료.");
-                    
-                }
-                AppUI.profileImagePreview.onload = null;
-                AppUI.profileImagePreview.onerror = null;
-
-                if (file) {
-                    console.log("Change event occurred. Selected file:", file.name, "Type:", file.type, "Size:", file.size);
-                    if (!file.type.startsWith('image/')) {
-                        showToast("Please select an image file.", "error");
-                        AppUI.profileImagePreview.removeAttribute('src');
-                        AppUI.profileImagePreview.style.display = 'none';
-                        return;
-                    }
-
-                    showToast("Generating image preview...", "info");
-
-                    const objectURL = URL.createObjectURL(file);
-                    AppUI.profileImagePreview.style.display = 'block';
-
-                    const onloadHandler = () => {
-                        console.log("Preview image loaded and Object URL revoked.");
-
-                    };
-
-                    const onerrorHandler = (err) => {
-                        console.error("프리뷰 이미지를 로드할수없습니다. 다시 선택하세요", err);
-                        showToast("Could not load preview image. Please select the file again.", "error");
-                        AppUI.profileImagePreview.removeAttribute('src'); // 무한 루프 방지를 위해 src 제거
-                        AppUI.profileImagePreview.style.display = 'none';
-                        URL.revokeObjectURL(objectURL);
-                    };
-
-                    AppUI.profileImagePreview.onload = onloadHandler;
-                    AppUI.profileImagePreview.onerror = onerrorHandler;
-
-                    AppUI.profileImagePreview.src = objectURL;
-                    console.log("Preview Object URL created:", objectURL);
-                    showToast("Image preview ready!", "success");
-
                 } else {
+                    const errorMessage = data.message || '데이터 삭제 실패';
+                    showToast(errorMessage, 'error');
+                    console.error('데이터 삭제 실패:', errorMessage);
+                }
+            } catch (error) {
+                console.error("클라이언트에서 데이터 삭제 API 호출 오류:", error);
+                showToast(`데이터 삭제 중 네트워크 오류 발생: ${error.message}`, 'error');
+            }
+        });
+    } else {
+        console.error("오류: ID 'deleteAllDataBtn'을 가진 요소를 찾을 수 없습니다.");
+    }
+
+    if (AppUI.btnLogout) {
+        AppUI.btnLogout.addEventListener('click', handleLogout);
+    } else {
+        console.error("btnLogout을 찾을 수 없습니다! HTML ID를 확인하세요.");
+    }
+
+    if (AppUI.authSubmitBtn) {
+        AppUI.authSubmitBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const currentModeIsSignUp = getSignUpMode();
+            console.log(`authSubmitBtn 클릭됨. 현재 모드: ${currentModeIsSignUp ? '회원가입' : '로그인'}`);
+            AppUI.authSubmitBtn.disabled = true;
+           const originalText = AppUI.authSubmitBtn.textContent;
+            AppUI.authSubmitBtn.textContent = currentModeIsSignUp ? '가입 중...' : '로그인 중...';
+            try {
+                if (currentModeIsSignUp) {
+                    await handleSignup(e);
+                } else {
+                    await handleLogin();
+                }
+            } catch (error) {
+                console.error("인증 처리 중 오류 발생:", error);
+            } finally {
+                AppUI.authSubmitBtn.disabled = false;
+                AppUI.authSubmitBtn.textContent = originalText;
+            }
+        });
+    } else {
+        console.error("authSubmitBtn을 찾을 수 없습니다! HTML ID를 확인하세요.");
+    }
+
+    if (AppUI.authSwitchBtn) {
+        AppUI.authSwitchBtn.addEventListener('click', () => {
+            toggleSignUpMode();
+        });
+    } else {
+        console.error("authSwitchBtn을 찾을 수 없습니다! HTML ID를 확인하세요.");
+    }
+
+    if (AppUI.signupGenderSelect && AppUI.profileImageInput && AppUI.profileImagePreview) {
+        AppUI.signupGenderSelect.addEventListener('change', () => {
+            const selectedGender = AppUI.signupGenderSelect.value;
+            if (AppUI.profileImageInput.files.length === 0) {
+                AppUI.profileImagePreview.src = getDefaultProfileImage(selectedGender);
+            }
+        });
+    }
+
+    if (AppUI.signupMinAgeSelect && AppUI.signupMaxAgeSelect) {
+        AppUI.signupMinAgeSelect.addEventListener('change', () => {
+            updateMinAgeOptions(AppUI.signupMinAgeSelect, AppUI.signupMaxAgeSelect);
+        });
+
+        AppUI.signupMaxAgeSelect.addEventListener('change', () => {
+            updateMaxAgeOptions(AppUI.signupMinAgeSelect,AppUI.signupMaxAgeSelect);
+        });
+    }
+
+    if (AppUI.profileImageInput && AppUI.profileImagePreview) {
+        AppUI.profileImageInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+
+            // 이전 미리보기 URL이 있다면 메모리에서 해제하고, 이벤트 리스너를 정리합니다.
+            const existingObjectURL = AppUI.profileImagePreview.src;
+            if (existingObjectURL && existingObjectURL.startsWith('blob:')) {
+                URL.revokeObjectURL(existingObjectURL);
+                AppUI.profileImagePreview.removeAttribute('src'); // 무한 루프 방지를 위해 src 제거
+                console.log("기존 Object URL 해제 및 src 제거 완료.");
+
+            }
+            AppUI.profileImagePreview.onload = null;
+            AppUI.profileImagePreview.onerror = null;
+
+            if (file) {
+                console.log("Change event occurred. Selected file:", file.name, "Type:", file.type, "Size:", file.size);
+                if (!file.type.startsWith('image/')) {
+                    showToast("Please select an image file.", "error");
                     AppUI.profileImagePreview.removeAttribute('src');
-                    AppUI.profileImagePreview.style.display = 'block';
-                    showToast("No file selected.", "info");
+                    AppUI.profileImagePreview.style.display = 'none';
+                    return;
                 }
-            });
-        } else {
-            console.error("script.js:", "Profile image input or preview element not found in DOM. Check HTML IDs!");
-        }
 
-        /////////공동화면-메인화면
+                showToast("Generating image preview...", "info");
+
+                const objectURL = URL.createObjectURL(file);
+                AppUI.profileImagePreview.style.display = 'block';
+
+                const onloadHandler = () => {
+                    console.log("Preview image loaded and Object URL revoked.");
+
+                };
+
+                const onerrorHandler = (err) => {
+                    console.error("프리뷰 이미지를 로드할수없습니다. 다시 선택하세요", err);
+                    showToast("Could not load preview image. Please select the file again.", "error");
+                    AppUI.profileImagePreview.removeAttribute('src'); // 무한 루프 방지를 위해 src 제거
+                    AppUI.profileImagePreview.style.display = 'none';
+                    URL.revokeObjectURL(objectURL);
+                };
+
+                AppUI.profileImagePreview.onload = onloadHandler;
+                AppUI.profileImagePreview.onerror = onerrorHandler;
+
+                AppUI.profileImagePreview.src = objectURL;
+                console.log("Preview Object URL created:", objectURL);
+                showToast("Image preview ready!", "success");
+
+            } else {
+                AppUI.profileImagePreview.removeAttribute('src');
+                AppUI.profileImagePreview.style.display = 'block';
+                showToast("No file selected.", "info");
+            }
+        });
+    } else {
+        console.error("script.js:", "Profile image input or preview element not found in DOM. Check HTML IDs!");
+    }
+
+    /////////공동화면-메인화면
 
 
 
-        if (AppUI.filterMinAgeGroupSelect && AppUI.filterMaxAgeGroupSelect) {
+    if (AppUI.filterMinAgeGroupSelect && AppUI.filterMaxAgeGroupSelect) {
 
-            updateAgeGroupDropdownOptions(AppUI.filterMinAgeGroupSelect, 'min');
-            updateAgeGroupDropdownOptions(AppUI.filterMaxAgeGroupSelect, 'max');
-
-
-            AppUI.filterMinAgeGroupSelect.addEventListener('change', () => {
-                updateMaxAgeOptions(AppUI.filterMinAgeGroupSelect, AppUI.filterMaxAgeGroupSelect);
-
-            });
-
-            AppUI.filterMaxAgeGroupSelect.addEventListener('change', () => {
-                updateMinAgeOptions(AppUI.filterMinAgeGroupSelect,AppUI.filterMaxAgeGroupSelect);
-
-            });
-        }else{
-            console.error("오류:나이 그룹 필터 드랍다운 요소를 찾을수 없습니다. AppUI와 HTML ID를 확신하세요! ")
-        }
+        updateAgeGroupDropdownOptions(AppUI.filterMinAgeGroupSelect, 'min');
+        updateAgeGroupDropdownOptions(AppUI.filterMaxAgeGroupSelect, 'max');
 
 
+        AppUI.filterMinAgeGroupSelect.addEventListener('change', () => {
+            updateMaxAgeOptions(AppUI.filterMinAgeGroupSelect, AppUI.filterMaxAgeGroupSelect);
 
-        if(AppUI.applyFilterBtn){
-            AppUI.applyFilterBtn.addEventListener('click', ()=>{
-                  const filterOptions = {
-                           gender: AppUI.filterGenderSelect.value,
-                           minAgeGroupValue: AppUI.filterMinAgeGroupSelect.value,
-                           maxAgeGroupValue: AppUI.filterMaxAgeGroupSelect.value,
-                           region: AppUI.filterRegionSelect.value
-                       };
+        });
 
-                       console.log('✅ 적용할 필터:', filterOptions);
-                filterDisplayUsers(filterOptions);
-            });
-        }
-        document.querySelectorAll('.toggle-password').forEach(toggle => {
-            toggle.addEventListener('click', () => {
-                const targetId = toggle.dataset.target;
-                const passwordInput = document.getElementById(targetId);
-                if (passwordInput) {
-                    if (passwordInput.type === 'password') {
-                        passwordInput.type = 'text';
-                        toggle.textContent = '🔒';
-                    } else {
-                        passwordInput.type = 'password';
-                        toggle.textContent = '👁️';
-                    }
+        AppUI.filterMaxAgeGroupSelect.addEventListener('change', () => {
+            updateMinAgeOptions(AppUI.filterMinAgeGroupSelect,AppUI.filterMaxAgeGroupSelect);
+
+        });
+    }else{
+        console.error("오류:나이 그룹 필터 드랍다운 요소를 찾을수 없습니다. AppUI와 HTML ID를 확신하세요! ")
+    }
+
+
+
+    if(AppUI.applyFilterBtn){
+        AppUI.applyFilterBtn.addEventListener('click', ()=>{
+              const filterOptions = {
+                       gender: AppUI.filterGenderSelect.value,
+                       minAgeGroupValue: AppUI.filterMinAgeGroupSelect.value,
+                       maxAgeGroupValue: AppUI.filterMaxAgeGroupSelect.value,
+                       region: AppUI.filterRegionSelect.value
+                   };
+
+                   console.log('✅ 적용할 필터:', filterOptions);
+            filterDisplayUsers(filterOptions);
+        });
+    }
+    document.querySelectorAll('.toggle-password').forEach(toggle => {
+        toggle.addEventListener('click', () => {
+            const targetId = toggle.dataset.target;
+            const passwordInput = document.getElementById(targetId);
+            if (passwordInput) {
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    toggle.textContent = '🔒';
+                } else {
+                    passwordInput.type = 'password';
+                    toggle.textContent = '👁️';
                 }
-            });
+            }
         });
     });
+
+
+
+});

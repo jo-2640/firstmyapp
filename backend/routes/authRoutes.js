@@ -1,4 +1,4 @@
-
+// backend/routes/authRoutes.js
 const express = require('express');
 const router = express.Router(); // express.Router()를 통해 라우터 객체를 초기화합니다.
 

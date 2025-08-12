@@ -11,6 +11,7 @@ import { setCurrentUser } from './user-data.js';
 import { clearUserList, filterDisplayUsers,updateAllUserItemButtons } from './allUserDiv.js';
 import { fillSignUpFieldsWithRandomDataTemp } from './temp.js';
 import { initializeFriendList,updateFriendList } from './friendListDiv.js';
+import { initializeSocket} from './socketIO.js';
 
 let authModeInitialized = false;
 let hasLoadedInitialData = false;
@@ -127,6 +128,12 @@ export async function handleLogin() {
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
+
+        const authToken = await user.getIdToken();
+        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('myUserId', user.id);
+        localStorage.setItem('myUsername',user.displayName);
+
         console.log("로그인 성공:", user);
 
        const userRef = doc(db, 'users', user.uid);
@@ -144,6 +151,8 @@ export async function handleLogin() {
             localStorage.removeItem(LOCAL_STORAGE_KEYS.REMEMBER_ME_PASSWORD);
             localStorage.setItem(LOCAL_STORAGE_KEYS.REMEMBER_ME_CHECKED, 'false');
         }
+
+        initializeSocket();
         showToast("로그인 성공!", "success");
 
         if (AppUI.authEmailInput) AppUI.authEmailInput.value = '';

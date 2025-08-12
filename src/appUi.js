@@ -45,6 +45,9 @@ const AppUI = {
 
     //친구리스트
     friendListUl: null,
+
+    //친구들과 메세지
+
     // 초기화 메서드: DOM 요소들을 실제 값으로 채웁니다.
     initialize: function() {
         console.log("[AppUI.js] AppUI.initialize() 호출됨. DOM 요소 로딩 중...");
@@ -73,13 +76,8 @@ const AppUI = {
         this.authTitle = document.getElementById('auth-title');
         this.authSection = document.getElementById('auth-section');
 
-
         // sidebar 옆 섹션의 클래스입니다. 전체를 제어하려면 app-content를 사용하는 것이 맞습니다.
-        this.appContent = document.querySelector('.app-content');
-                                 // 현재 HTML에는 ID가 없으므로 class로 선택합니다.
-        this.appHeader = document.querySelector('.app-header');                                                             // 만약 메인 콘텐츠를 감싸는 상위 div에 ID를 부여할 수 있다면 더 좋습니다.
-        //친구리스트
-        this.friendListUl = document.getElementById('friend-list');
+
         // 회원가입 관련 UI 요소
         this.signupPasswordConfirmInput = document.getElementById('signup-password-confirm');
         this.signupNicknameInput = document.getElementById('signup-nickname');
@@ -92,6 +90,11 @@ const AppUI = {
         this.profileImageInput = document.getElementById('signup-profile-image-upload-input');
         this.profileImagePreview = document.getElementById('signup-profile-img-preview');
         this.signupFieldsDiv = document.getElementById('signup-fields');
+        this.appContent = document.querySelector('.app-content');
+        this.appHeader = document.querySelector('.app-header');                                                             // 만약 메인 콘텐츠를 감싸는 상위 div에 ID를 부여할 수 있다면 더 좋습니다.
+        //친구리스트
+        this.friendListUl = document.getElementById('friend-list');
+        //친구들과 메세지 ui
 
         // 각 요소가 제대로 로드되었는지 확인하는 간단한 로깅 (선택 사항)
         if (!this.authTitle) console.warn("AppUI: 'auth-title' (인증 폼 제목) 요소를 찾을 수 없습니다!");

@@ -20,6 +20,6 @@
     "@azure/storage-blob": "^12.1.0"
   },
   "devDependencies": {
-    "vite": "lastest"
+    "vite": "latest"
   }
 }

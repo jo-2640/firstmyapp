@@ -508,9 +508,29 @@ body {
 .select-custom, .auth-input, select {
   padding: 9px 10px;
   border-radius: var(--radius-sm);
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.04);
-  color: #e8f3ff;
+  background: rgba(255, 255, 255, 0.08); /* 밝은 반투명 배경 */
+  border: 1px solid rgba(255,255,255,0.12); /* 테두리를 조금 더 진하게 */
+  color: #ffffff; /* 텍스트 색상을 더 밝게 */
+  backdrop-filter: blur(4px); /* 배경 흐림 효과로 깊이감 추가 */
+}
+
+/* 드롭다운 옵션들 스타일링 */
+.select-custom option, select option {
+  background: rgba(40, 44, 52, 0.95); /* 옵션 배경을 밝은 회색으로 */
+  color: #ffffff; /* 옵션 텍스트를 밝게 */
+  padding: 8px;
+}
+
+/* 호버 및 포커스 상태 */
+.select-custom:hover, .auth-input:hover, select:hover {
+  border-color: rgba(255,255,255,0.18);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.select-custom:focus, .auth-input:focus, select:focus {
+  outline: none;
+  border-color: rgba(232, 243, 255, 0.3);
+  box-shadow: 0 0 0 2px rgba(232, 243, 255, 0.1);
 }
 
 /* ---------- 알림(토스트) ---------- */
@@ -601,6 +621,23 @@ body {
   font-weight: 700;
 }
 
+
+/* ⭐ 새로운 메시지 알림 표시 스타일 */
+.chat-tab.has-new-message {
+    position: relative;
+}
+
+.chat-tab.has-new-message::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background-color: var(--danger); /* 빨간색 점 */
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+}
 /* 채팅방 목록 (메시지 영역을 감싸는 부모) */
 .chat-rooms {
   flex: 1; /* chat-container의 남은 공간을 모두 차지 */
@@ -632,21 +669,17 @@ body {
 
 /* 채팅 메시지 영역 (스크롤이 필요한 부분) */
 .chat-messages {
-  flex:1;
+  flex: 1;
   display: flex;
-  flex-direction: column;
-
-  background: #bbdefb;
-  color: #222;
-  padding: 10px 15px;
-  margin-bottom: 8px;
-  border-radius: var(--radius-md);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  flex-direction: column-reverse; /* ⭐ 가장 최근 메시지가 아래에 오도록 정렬 */
+  padding: 10px; /* 기존 padding: 10px 15px 에서 10px로 변경 */
+  margin-bottom: 0; /* 불필요한 마진 제거 */
+  background: var(--card); /* 채팅창 배경색을 통일 */
+  box-shadow: none; /* 부모 요소에 이미 그림자가 있어 제거 */
   word-wrap: break-word;
-  overflow-y: auto; /* ⭐ 스크롤바는 여기에만! */
-   min-height: 0; /* ⭐ 중요! 부모가 늘어나지 않도록 막습니다. */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.1) #111e30;
+  overflow-y: auto;
+  min-height: 0;
+  border-radius: var(--radius-md); /* 부모 요소에 이미 라운딩이 있어 제거 */
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -662,43 +695,67 @@ body {
   border-radius: 10px;
   border: 2px solid #111e30;
 }
-
-/* 메시지 스타일 */
-.chat-message {
+/* 개별 메시지 말풍선 스타일 (본체) */
+.chat-messages .chat-message {
   max-width: 70%;
   padding: 10px 15px;
-  margin: 8px 10px;
-  border-radius: 15px;
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-
-/* public/style.css */
-
-.chat-messages {
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  list-style-type: none;
-}
-
-.chat-messages > div {
   margin-bottom: 8px;
-  padding: 8px 12px;
-  border-radius: 20px;
-  background-color: #e0e0e0;
+  background-color: #334155; /* 상대방 메시지 배경색 */
+  color: #e2e8f0;
+  border-radius: 12px; /* 말풍선 본체는 둥근 사각형으로 만듭니다. */
   align-self: flex-start;
+  position: relative; /* ::after 요소의 위치를 지정하기 위해 필요합니다. */
+  word-wrap: break-word;
+  animation: popIn 0.3s ease forwards;
+  transform: scale(0.9);
+  opacity: 0;
+  transform-origin: left bottom;
 }
 
-.chat-messages > div.self {
-  background-color: #007bff;
+/* 내 메시지 스타일 (본체) */
+.chat-messages .chat-message.self {
+  background-color: var(--accent); /* 내 메시지 배경색 */
   color: white;
-  align-self: flex-end;
+  align-self: flex-end; /* 내 메시지는 오른쪽에 정렬 */
 }
-.chat-message:first-child {
-  margin-top: auto; /* ⭐ 첫 번째 메시지를 아래로 밀어냅니다. */
+
+/* 말풍선 꼬리 (상대방) */
+.chat-messages .chat-message:not(.self)::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -8px; /* 꼬리가 말풍선 본체 밖에 위치하도록 */
+  width: 16px;
+  height: 16px;
+  background-color: #334155; /* 말풍선 본체와 동일한 색상 */
+  /* 꼬리 모양을 만드는 CSS */
+  clip-path: polygon(100% 0, 0 100%, 100% 100%);
+  z-index: -1; /* 말풍선 본체 아래로 꼬리가 오도록 */
 }
+
+/* 말풍선 꼬리 (내 메시지) */
+.chat-messages .chat-message.self::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: -8px; /* 꼬리가 말풍선 본체 밖에 위치하도록 */
+  width: 16px;
+  height: 16px;
+  background-color: var(--accent); /* 말풍선 본체와 동일한 색상 */
+  /* 꼬리 모양을 만드는 CSS */
+  clip-path: polygon(0 0, 0 100%, 100% 100%);
+  z-index: -1; /* 말풍선 본체 아래로 꼬리가 오도록 */
+}
+
+/*
+  기존의 .chat-message에 있던 clip-path는 제거하고,
+  ::before를 사용하여 꼬리 모양을 만들어줍니다.
+*/
+.chat-messages .chat-message.self,
+.chat-messages .chat-message {
+  clip-path: none !important;
+}
+/* 애니메이션 */
 @keyframes popIn {
   to {
     opacity: 1;

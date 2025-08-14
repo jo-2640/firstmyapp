@@ -1,11 +1,12 @@
 import { collection, doc, getDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, onSnapshot, query, where, getDocs, limit, orderBy, documentId, startAfter, endBefore, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { auth, db } from './firebase-init.js';
 import { currentUserUid, currentUserData } from './user-data.js'; //
+import { SERVER_BASE_URL } from './constants.js'
 import AppUI from './AppUI.js';
 import { updateAuthUIForMode } from './auth-service.js';
 import { getDefaultProfileImage, getAgeGroupLabel, getGenderLabel, getRegionLabel, detailedAgeGroups, regionMap, genderMap, showToast, getAgeGroupLabelFromBirthYear } from './utils.js';
 import { openFriendRequestModal, cancelFriendRequest, openReceivedRequestDetailsModal } from './friendRequest.js';
-
+import {fetchNewSasToken} from './AzureSasTokenManager.js';
 const USERS_PER_PAGE = 5;
 let lastVisibleUserDoc = null;
 let currentFilter = {};
@@ -108,6 +109,11 @@ export function bindUserListEvent(){
             openReceivedRequestDetailsModal(targetUid);
         };
     });
+    AppUI.userListUl.querySelectorAll('.user-profile-img').forEach(img => {
+        img.onerror = () => {
+             retryImageLoad(img);
+        };
+    });
 }
 // allUserDiv.js 파일에 추가
 export function getActionButtonHtml(targetUser, currentUserData) {
@@ -132,30 +138,39 @@ export function getActionButtonHtml(targetUser, currentUserData) {
         return `<button class="add-friend-btn bg-indigo-500 text-white px-3 py-1 rounded-md text-sm hover:bg-indigo-600" data-uid="${targetUser.id}" data-nickname="${nickname}" data-profileimg="${profileImg}">친구 요청</button>`;
     }
 }
-export function renderUserItem(targetUser, currentUserId, currentUserData) {
+export async function renderUserItem(targetUser, currentUserId, currentUserData) {
     const actionButtonHtml = getActionButtonHtml(targetUser, currentUserData);
     const ageLabel = getAgeGroupLabelFromBirthYear(targetUser.birthYear) || '나이 정보 없음';
-    const displayProfileImgUrl = targetUser.profileImgUrl || getDefaultProfileImage(targetUser.gender);
+    const cachedTokens = JSON.parse(localStorage.getItem('sasTokens') || '{}');
+    const userSasToken = cachedTokens[targetUser.id];
+
+    const displayProfileImgUrl = targetUser.profileImgUrl && userSasToken ?
+        `${targetUser.profileImgUrl}?${userSasToken}` :
+        getDefaultProfileImage(targetUser.gender);
 
     const friendIds = new Set(currentUserData.friendIds || []);
     const isFriend = friendIds.has(targetUser.id);
 
     // ✅ data-birth-year와 data-gender 속성을 추가하여 필요한 정보를 저장합니다.
-    return `
-        <li class="user-list-item" id="user-${targetUser.id}" data-gender="${targetUser.gender}" data-birth-year="${targetUser.birthYear}" data-is-friend="${isFriend}">
-            <div class="user-item-content">
-                <img src="${displayProfileImgUrl}" alt="${targetUser.nickname}" class="user-profile-img" onerror="this.src='${getDefaultProfileImage(targetUser.gender)}'">
-                <div class="user-details-group">
-                    <h4 class="user-nickname-heading">${targetUser.nickname}</h4>
-                    <span class="user-info-text">${getGenderLabel(targetUser.gender)}, ${ageLabel}, ${getRegionLabel(targetUser.region)}</span>
-                    <p class="user-bio-text">${targetUser.bio || '소개 없음'}</p>
-                </div>
-                <div class="user-action-button-container">
-                    ${actionButtonHtml}
-                </div>
-            </div>
-        </li>
-    `;
+   return `
+       <li class="user-list-item" id="user-${targetUser.id}" data-gender="${targetUser.gender}" data-birth-year="${targetUser.birthYear}" data-is-friend="${isFriend}">
+           <div class="user-item-content">
+               <img src="${displayProfileImgUrl}"
+                    alt="${targetUser.nickname}"
+                    class="user-profile-img"
+                    data-uid="${targetUser.id}"
+                    data-image-path="${targetUser.profileImgUrl}">
+               <div class="user-details-group">
+                   <h4 class="user-nickname-heading">${targetUser.nickname}</h4>
+                   <span class="user-info-text">${getGenderLabel(targetUser.gender)}, ${ageLabel}, ${getRegionLabel(targetUser.region)}</span>
+                   <p class="user-bio-text">${targetUser.bio || '소개 없음'}</p>
+               </div>
+               <div class="user-action-button-container">
+                   ${actionButtonHtml}
+               </div>
+           </div>
+       </li>
+   `;
 }
 
 // ✅ 2. updateAllUserItemButtons 함수 수정 (오타 수정 및 데이터셋 활용)
@@ -247,12 +262,39 @@ export async function filterDisplayUsers(filter, append = false) {
         if (filteredDocs.length === 0 && !append) {
             clearUserList('조건에 맞는 사용자가 없습니다.');
         }else {
-             const docsToRender = filteredDocs.slice(0, USERS_PER_PAGE);
-            docsToRender.forEach(doc => {
+            const docsToRender = filteredDocs.slice(0, USERS_PER_PAGE);
+            const usersForToken = docsToRender.map(doc => ({
+                uid: doc.id,
+                blobPath: doc.data().profileImgUrl
+            }));
+
+            const response = await fetch(`${SERVER_BASE_URL}/api/get-multiple-sas-tokens`,{
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json'},
+                body: JSON.stringify({ users: usersForToken})
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP 오류! 상태 코드: ${response.status}`);
+            }
+            const tokenData = await response.json();
+
+            if(tokenData.success){
+                localStorage.setItem('sasTokens', JSON.stringify(tokenData.tokens));
+                localStorage.setItem('sasTokensExpiry', tokenData.expiry);
+            }else{
+                console.error("토큰 발급 실패:" , tokenData.message);
+                showToast("토큰을 불러오는데 실패했습니다.", "error");
+            }
+
+            const renderPromises = docsToRender.map(doc => {
                 const userData = { id: doc.id, ...doc.data() };
-                const userItemHtml = renderUserItem(userData, currentUserUid, currentUserData);
-                if (userItemHtml) {
-                    AppUI.userListUl.insertAdjacentHTML('beforeend', userItemHtml);
+                return renderUserItem(userData, currentUserUid, currentUserData);
+            });
+            const userItemHtmls = await Promise.all(renderPromises);
+
+            userItemHtmls.forEach(html =>{
+                if(html){
+                    AppUI.userListUl.insertAdjacentHTML('beforeend', html);
                 }
             });
         }
@@ -278,5 +320,29 @@ export async function filterDisplayUsers(filter, append = false) {
     } catch (error) {
         console.error("사용자 목록 로드 중 오류 발생:", error);
         showToast("사용자 목록을 불러오는 데 실패했습니다.", "error");
+    }
+}
+// allUserDiv.js 파일에 추가
+async function retryImageLoad(imgElement) {
+    const uid = imgElement.dataset.uid;
+    const fullPath = imgElement.dataset.imagePath;
+
+    if (!uid || !fullPath) {
+        console.error("retryImageLoad: UID 또는 이미지 경로가 누락되었습니다.");
+        // ✅ 이미지 로딩 실패 시 기본 이미지로 대체
+        imgElement.src = getDefaultProfileImage(imgElement.dataset.gender);
+        return;
+    }
+
+    const blobName = new URL(fullPath).pathname.substring(1);
+    const newToken = await fetchNewSasToken(uid, blobName);
+
+    if (newToken) {
+        const oldUrl = imgElement.src.split('?')[0];
+        imgElement.src = `${oldUrl}?${newToken}`;
+        imgElement.dataset.retried = 'true';
+    } else {
+        // ✅ 재시도 실패 시 기본 이미지로 대체
+        imgElement.src = getDefaultProfileImage(imgElement.dataset.gender);
     }
 }

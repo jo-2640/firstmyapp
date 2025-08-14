@@ -14,7 +14,7 @@ import { filterDisplayUsers, applyUserFilters } from './src/allUserDiv.js';
 import { getDefaultProfileImage, showToast, resizeAndOptimizeImg, fetchCurrentYearFromServer, detailedAgeGroups, fetchBirthYearRangeFromServer} from './src/utils.js';
 import { initializeMyProfileDivUI, clearMyProfileUI } from './src/myProfileDiv.js';
 import { fillSignUpFieldsWithRandomDataTemp } from './src/temp.js';
-import { initializeSocket } from './src/socketIO.js';
+
 import { openChatRoom } from './src/chat.js';
 let minBirthYear = 1980; //임시 변수이나 지우면 안됨~서버값
 let serverCurrentYear = new Date().getFullYear(); //임시변수이나 지우면안됨~ 서버값
@@ -328,7 +328,7 @@ function updateMinAgeOptions(minSelect, maxSelect) {
 /////////////////////////////////메인함수부분
 
 
-    console.log("script.js가 초기화됩니다.");
+
 
   
 //////////////////////////////////////////////
@@ -344,17 +344,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
        console.log(BIRTH_YEAR_RANGE.minBirthYear);
        updateBirthYearDropdownOptions(AppUI.signupBirthYearSelect, BIRTH_YEAR_RANGE.minBirthYear, BIRTH_YEAR_RANGE.maxBirthYear);
-       const authToken = localStorage.getItem('authToken');
-       if (authToken) {
-               initializeSocket();
-                 localStorage.setItem('authToken', authToken);
-                 localStorage.setItem('myUserId', currentUserUid);
-                 localStorage.setItem('myUsername', currentUserNickname);
-       } else {
-               console.log('인증 토큰이 없습니다. 소켓 연결을 건너뜁니다.');
-               // 토큰이 없으므로 로그인 페이지로 이동시킬 수도 있습니다.
-               // window.location.href = '/login.html';
-       }
+
 
     } catch (error) {
         console.error(`${error.message}`);
@@ -368,7 +358,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateAgeGroupDropdownOptions(AppUI.signupMinAgeSelect, 'min');
     updateAgeGroupDropdownOptions(AppUI.signupMaxAgeSelect, 'max');
 
-
+      const storedData = localStorage.getItem('chatData');
+        if (storedData) {
+            // 저장된 JSON 문자열을 객체로 변환하여 messagesDatabase에 할당
+            Object.assign(messagesDatabase, JSON.parse(storedData));
+            console.log('채팅 데이터가 localStorage에서 로드되었습니다.');
+        }
 
     if (AppUI.deleteAllDataBtn) {
         AppUI.deleteAllDataBtn.addEventListener('click', async () => {
@@ -573,7 +568,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     });
+});
 
 
 
+window.addEventListener('beforeunload', () => {
+    // messagesDatabase의 최신 데이터를 localStorage에 저장
+    localStorage.setItem('chatData', JSON.stringify(messagesDatabase));
+    console.log('채팅 데이터가 localStorage에 저장되었습니다.');
 });

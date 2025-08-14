@@ -7,11 +7,12 @@ import { auth, db } from './firebase-init.js';
 import { LOCAL_STORAGE_KEYS,SERVER_BASE_URL } from './constants.js';
 import { showToast, getDefaultProfileImage } from './utils.js';
 import AppUI from './AppUI.js';
-import { setCurrentUser } from './user-data.js';
+import { setCurrentUser,currentUserNickname,currentUserUid,currentUserData } from './user-data.js';
 import { clearUserList, filterDisplayUsers,updateAllUserItemButtons } from './allUserDiv.js';
 import { fillSignUpFieldsWithRandomDataTemp } from './temp.js';
 import { initializeFriendList,updateFriendList } from './friendListDiv.js';
-import { initializeSocket} from './socketIO.js';
+import { initializeSocket, disconnectSocket} from './socketIO.js';
+import { messagesDatabase} from './chat.js';
 
 let authModeInitialized = false;
 let hasLoadedInitialData = false;
@@ -21,6 +22,7 @@ let userDocUnsubscribe = null;
 /**
  * 역할: 인증 UI 요소 초기화
  */
+
 export function initializeAuthUIElements() {
     if (!authModeInitialized) {
         if (AppUI.authEmailInput) AppUI.authEmailInput.placeholder = "Email 입력해주세요";
@@ -152,7 +154,7 @@ export async function handleLogin() {
             localStorage.setItem(LOCAL_STORAGE_KEYS.REMEMBER_ME_CHECKED, 'false');
         }
 
-        initializeSocket();
+
         showToast("로그인 성공!", "success");
 
         if (AppUI.authEmailInput) AppUI.authEmailInput.value = '';
@@ -183,9 +185,18 @@ export async function handleLogout() {
                 isOnline: false,
                 lastLogoutAt: serverTimestamp()
             }, { merge: true });
+             localStorage.removeItem('myUserId');
             console.log("사용자 오프라인 상태로 업데이트 완료.");
         }
-
+        ////////////////////
+        const chatTabs = document.querySelector('.chat-tabs');
+        const chatRoomsContainer = document.querySelector('.chat-rooms');
+        Object.keys(messagesDatabase).forEach(key => {
+          delete messagesDatabase[key];
+        });
+         chatTabs.innerHTML = '';
+           chatRoomsContainer.innerHTML = '';
+           /////////////////
         await signOut(auth); // 이 함수가 onAuthStateChanged 리스너를 트리거합니다.
         console.log("[Auth Service] 로그아웃 완료.");
         showToast("로그아웃되었습니다.", "success");
@@ -267,7 +278,9 @@ export function setupAuthListener() {
                          maxAgeGroupValue: AppUI.filterMaxAgeGroupSelect.value || '50-late',
                          region:  'all'
                      };
-                    
+
+
+            // ... 기존 초기화 로직 ...
                     console.log("[Auth Service] 사용자 문서 데이터 실시간 로드 완료. UI 업데이트 시작.");
                     await loadUserProfileImage(user.uid, userData.profileImgUrl, myProfileImage, userData.gender);
 
@@ -279,9 +292,23 @@ export function setupAuthListener() {
                     welcomeMessage.classList.remove('hidden');
                     welcomeMessage.textContent = `환영합니다 ${userData.nickname || '익명'} 님`;
                     myNicknameSpan.textContent = userData.nickname || user.email;
+                    const authToken = localStorage.getItem('authToken');
+                    if (authToken) {
+                          localStorage.setItem('authToken', authToken);
+                          localStorage.setItem('myUserId', currentUserUid);
+                          localStorage.setItem('myUsername', currentUserNickname);
+                          console.log(`${currentUserUid}+${currentUserNickname}`);
+                    } else {
+                           console.log('인증 토큰이 없습니다. 소켓 연결을 건너뜁니다.');
+                           // 토큰이 없으므로 로그인 페이지로 이동시킬 수도 있습니다.
+                           // window.location.href = '/login.html';
+                   }
+                    initializeSocket();
+
                 }else{
                     const newlyAddedFriendUids = await updateAllUserItemButtons();
                     updateFriendList(newlyAddedFriendUids);
+ console.log("--- 데이터 변경 감지, 업데이트 블록이 실행됩니다. (hasLoadedInitialData: true) ---");
                 }
 
 
@@ -309,7 +336,7 @@ export function setupAuthListener() {
             console.log("[Auth Service] 사용자 로그아웃 상태.");
 
             // ✅ 로그아웃 시 무조건 로그인 모드로 UI를 초기화
-
+            disconnectSocket();
             clearUserList();
             updateAuthUIForMode(false);
             console.log("[Auth Listener] UI가 로그인 화면으로 전환되었습니다.");

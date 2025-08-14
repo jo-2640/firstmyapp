@@ -1,8 +1,9 @@
 // backend/routes/authRoutes.js
-const express = require('express');
-const router = express.Router(); // express.Router()를 통해 라우터 객체를 초기화합니다.
 
-// 필요한 Firebase 및 Azure 라이브러리 및 유틸리티 함수들을 불러옵니다.
+const express = require('express');
+const router = express.Router();
+
+// 필요한 라이브러리 및 유틸리티 함수들을 불러옵니다.
 const { db, admin, auth } = require('../config/firebaseAdmin');
 const { getDefaultProfileImageUrl } = require('../config/defaultImages');
 const { BlobServiceClient, StorageSharedKeyCredential, generateBlobSASQueryParameters, BlobSASPermissions } = require('@azure/storage-blob');
@@ -10,48 +11,33 @@ const { BlobServiceClient, StorageSharedKeyCredential, generateBlobSASQueryParam
 // 환경 변수 설정
 const AZURE_ACCOUNT_NAME = process.env.AZURE_STORAGE_ACCOUNT_NAME;
 const AZURE_ACCOUNT_KEY = process.env.AZURE_STORAGE_ACCOUNT_KEY;
-// ✅ 컨테이너 이름을 환경 변수에서 불러오도록 수정
 const AZURE_CONTAINER_NAME = process.env.AZURE_CONTAINER_NAME;
 
-// ❗ 추가된 유효성 검사: Azure 환경 변수가 설정되어 있는지 확인
+// Azure 환경 변수 누락 시 서버 오류 처리
 if (!AZURE_ACCOUNT_NAME || !AZURE_ACCOUNT_KEY || !AZURE_CONTAINER_NAME) {
     console.error("Critical Error: Azure Storage Account Name, Key, or Container Name is not set in environment variables.");
-    // 환경 변수 누락 시 모든 라우터에 500 에러를 반환
     router.use((req, res) => {
         res.status(500).json({ success: false, message: '서버 설정 오류: Azure 환경 변수가 설정되지 않았습니다.' });
     });
 } else {
-    // 1. 사용자 계정 생성 (UID 확보) 라우터
-    router.post('/signup/create-user', async (req, res) => {//기존 서버에서 생성한던걸 클라이언트엣 생성함.(현재 미사용중)
+    // 1. 사용자 계정 생성 (현재 미사용)
+    router.post('/signup/create-user', async (req, res) => {
         try {
             const { email, password, gender, nickname } = req.body;
-
-            // 필수 필드 유효성 검사
             if (!email || !password || !gender || !nickname) {
                 return res.status(400).json({ success: false, message: '이메일, 비밀번호, 닉네임, 성별은 필수 입력 항목입니다.' });
             }
-
-            // Firebase 사용자 계정 생성
             const userRecord = await auth.createUser({
                 email: email.trim(),
                 password: password,
                 displayName: nickname.trim(),
                 photoURL: getDefaultProfileImageUrl(gender)
             });
-
             const uid = userRecord.uid;
             console.log(`서버: Firebase 사용자 생성 성공 - UID: ${uid}`);
-
-            // 성공 시 UID 반환
-            return res.status(200).json({
-                success: true,
-                message: '사용자 계정이 성공적으로 생성되었습니다.',
-                uid: uid
-            });
-
+            return res.status(200).json({ success: true, message: '사용자 계정이 성공적으로 생성되었습니다.', uid: uid });
         } catch (error) {
             console.error("서버: 사용자 계정 생성 중 오류 발생:", error);
-            // Firebase Auth 오류 코드에 따라 에러 메시지 조정
             if (error.code === 'auth/email-already-exists') {
                 return res.status(409).json({ success: false, message: '이미 사용 중인 이메일 주소입니다.' });
             }
@@ -59,84 +45,64 @@ if (!AZURE_ACCOUNT_NAME || !AZURE_ACCOUNT_KEY || !AZURE_CONTAINER_NAME) {
         }
     });
 
-    // 2. 프로필 이미지 업로드용 SAS 토큰 발급 라우터
+    // 2. 프로필 이미지 업로드용 SAS 토큰 발급
     router.post('/signup/get-profile-sas-token', async (req, res) => {
         const { uid, blobPath } = req.body;
-
         if (!uid || !blobPath) {
             return res.status(400).json({ success: false, message: 'UID와 파일명이 필요합니다.' });
         }
-
         try {
             const sharedKeyCredential = new StorageSharedKeyCredential(AZURE_ACCOUNT_NAME, AZURE_ACCOUNT_KEY);
             const blobServiceClient = new BlobServiceClient(`https://${AZURE_ACCOUNT_NAME}.blob.core.windows.net`, sharedKeyCredential);
-            // ✅ 환경 변수에서 컨테이너 이름 사용
             const containerClient = blobServiceClient.getContainerClient(AZURE_CONTAINER_NAME);
-
-            // UID 기반의 폴더 경로 설정
             const blobName = blobPath;
-
-            // SAS 토큰 옵션 설정
             const writeSasOptions = {
                 containerName: AZURE_CONTAINER_NAME,
                 blobName: blobName,
-                permissions: BlobSASPermissions.from({ create: true, write: true, }),
-                expiresOn: new Date(new Date().valueOf() + 300 * 1000) 
+                permissions: BlobSASPermissions.from({ create: true, write: true }),
+                expiresOn: new Date(new Date().valueOf() + 300 * 1000)
             };
-            console.log(`서버: UID ${uid}에 대한 SAS 토큰 발급 요청 - Blob 이름: ${writeSasOptions.blobName}`);
-            console.log(`서버: SAS 토큰 만료 시간: ${writeSasOptions.expiresOn}`);
-            console.log(`서버: SAS 토큰 권한: ${writeSasOptions.permissions.toString()}`);    
-            console.log(`서버: Azure Storage 계정 이름: ${AZURE_ACCOUNT_NAME}`);
-            console.log(`서버: Azure Storage 컨테이너 이름: ${AZURE_CONTAINER_NAME}`);  
-            
             const writeSasToken = generateBlobSASQueryParameters(writeSasOptions, sharedKeyCredential).toString();
-
             const readSasOptions = {
                 containerName: AZURE_CONTAINER_NAME,
                 blobName: blobName,
-                permissions: BlobSASPermissions.from({ read: true, }),
-                expiresOn: new Date(new Date().valueOf() + 300 * 1000) 
+                permissions: BlobSASPermissions.from({ read: true }),
+                expiresOn: new Date(new Date().valueOf() + 300 * 1000)
             };
             const readSasToken = generateBlobSASQueryParameters(readSasOptions, sharedKeyCredential).toString();
             const blobUrl = containerClient.getBlobClient(blobName).url;
-
             console.log(`서버: UID ${uid}에 대한 SAS 토큰 발급 성공`);
             return res.status(200).json({
                 success: true,
                 message: 'SAS 토큰이 성공적으로 발급되었습니다.읽기/쓰기',
                 writeSasToken: writeSasToken,
-                readSasToken:readSasToken,
+                readSasToken: readSasToken,
                 blobUrl: blobUrl
             });
-
         } catch (error) {
-            // ✅ 오류 객체 전체를 로깅하여 상세 정보를 확인합니다.
             console.error("서버: SAS 토큰 발급 중 오류 발생:", error);
             return res.status(500).json({ success: false, message: 'SAS 토큰 발급 중 오류가 발생했습니다.' });
         }
     });
 
     // 3. Firestore에 최종 정보 저장 라우터
-    
     router.post('/signup/finalize-all', async (req, res) => {
         try {
             const { uid, nickname, birthYear, region, gender, minAgeGroup, maxAgeGroup, bio, profileImgUrl } = req.body;
-
             if (!uid || !nickname || !birthYear || !region || !gender || minAgeGroup === undefined || maxAgeGroup === undefined) {
-                    return res.status(400).json({ success: false, message: '필수 정보가 누락되었습니다.' });
+                return res.status(400).json({ success: false, message: '필수 정보가 누락되었습니다.' });
             }
-
             await auth.updateUser(uid, {
                 displayName: nickname.trim(),
                 photoURL: profileImgUrl
-            }); 
+            });
             await db.collection('users').doc(uid).set({
                 nickname: nickname.trim(),
                 birthYear: parseInt(birthYear),
-                region: region.trim(),  
+                region: region.trim(),
                 gender: gender,
                 minAgeGroup: minAgeGroup,
-                maxAgeGroup: maxAgeGroup,   
+                maxAgeGroup: maxAgeGroup,
                 profileImgUrl: profileImgUrl,
                 bio: bio ? bio.trim() : '',
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -145,16 +111,94 @@ if (!AZURE_ACCOUNT_NAME || !AZURE_ACCOUNT_KEY || !AZURE_CONTAINER_NAME) {
                 friendRequestsSent: [],
                 friendRequestsReceived: []
             });
-            console.log(`서버: Firestore에 최종 사용자 정보 저장 성공 - UID: ${uid}`);  
+            console.log(`서버: Firestore에 최종 사용자 정보 저장 성공 - UID: ${uid}`);
             return res.status(200).json({
                 success: true,
                 message: '회원가입이 완료되었습니다!',
             });
-        }catch (error) {
+        } catch (error) {
             console.error("서버: 최종 데이터 저장 중 오류 발생:", error);
             return res.status(500).json({ success: false, message: '최종 데이터 저장 중 오류가 발생했습니다.' });
-        }   
-    }); 
+        }
+    });
+
+    // 4. 여러 사용자의 프로필 이미지 읽기용 SAS 토큰 발급 (수정 완료)
+    router.post('/get-multiple-sas-tokens', async (req, res) => {
+        // ✅ uids 배열 대신, uid와 blobPath를 포함하는 객체 배열을 받도록 변경
+        const { users } = req.body;
+        console.log("클라이언트가 보낸 사용자 정보:", req.body.users);
+        if (!users || !Array.isArray(users) || users.length === 0) {
+            return res.status(400).json({ success: false, message: '유효한 사용자 정보 배열이 필요합니다.' });
+        }
+        try {
+            const sharedKeyCredential = new StorageSharedKeyCredential(AZURE_ACCOUNT_NAME, AZURE_ACCOUNT_KEY);
+            const tokens = {};
+            for (const user of users) {
+                const { uid, blobPath } = user;
+                if (!uid || !blobPath) continue;
+
+                // ✅ blobPath에서 파일 이름만 추출
+                console.log(`--- [다중 토큰 발급] UID: ${uid} ---`);
+                console.log(`1. 원본 blobPath: ${blobPath}`);
+
+                const url = new URL(blobPath);
+                console.log('2. URL 객체: ', url);
+
+                const fullPath = url.pathname.slice(1); // 'new/users/...'
+                console.log(`3. 컨테이너 포함 경로 (fullPath): ${fullPath}`);
+
+                const blobName = fullPath.split('/').slice(1).join('/'); // 'users/...'
+                console.log(`4. 순수한 Blob 이름 (blobName): ${blobName}`);
+                 if (!blobName) {
+                console.warn(`UID ${uid}의 Blob 이름을 추출할 수 없습니다: ${blobPath}`);
+                continue; // 다음 사용자로 건너뛰기
+               }   
+
+                const readSasOptions = {
+                    containerName: AZURE_CONTAINER_NAME,
+                    blobName: blobName,
+                    permissions: BlobSASPermissions.from({ read: true }),
+                    expiresOn: new Date(new Date().valueOf() + 60 * 60 * 1000)
+                };
+                const sasToken = generateBlobSASQueryParameters(readSasOptions, sharedKeyCredential).toString();
+                tokens[uid] = sasToken;
+            }
+            console.log(`서버: 총 ${users.length}명의 사용자에 대한 SAS 토큰 발급 성공`);
+            return res.status(200).json({
+                success: true,
+                message: 'SAS 토큰이 성공적으로 발급되었습니다.',
+                tokens: tokens,
+                expiry: new Date(new Date().valueOf() + 60 * 60 * 1000).toISOString()
+            });
+        } catch (error) {
+            console.error("서버: 다중 SAS 토큰 발급 중 오류 발생:", error);
+            return res.status(500).json({ success: false, message: '다중 SAS 토큰 발급 중 오류가 발생했습니다.' });
+        }
+    });
+
+    // 5. 단일 SAS 토큰 발급 (수정됨)
+    // 이 라우터는 이제 blobName이 아닌 blobPath를 받습니다.
+    router.post('/get-sas-token', async (req, res) => {
+        const { uid, blobPath } = req.body;
+        if (!uid || !blobPath) {
+            return res.status(400).json({ success: false, message: "User ID (uid) and blob path are required." });
+        }
+        try {
+            // ✅ blobPath에서 파일 이름만 추출
+            const blobName = new URL(blobPath).pathname.substring(1);
+            const sasToken = await generateSasToken(blobName);
+            res.json({
+                success: true,
+                message: "SAS token successfully generated.",
+                token: `?${sasToken}`,
+                expiry: new Date(new Date().valueOf() + (30 * 60 * 1000)).toISOString()
+            });
+        } catch (error) {
+            console.error("Error generating SAS token:", error);
+            res.status(500).json({ success: false, message: "Failed to generate SAS token." });
+        }
+    });
 }
+
 // ⭐ 이 부분이 있어야 server.js에서 이 라우터를 import 할 수 있습니다.
 module.exports = router;

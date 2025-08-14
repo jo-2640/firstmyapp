@@ -1,8 +1,8 @@
 // socketManager.js에서 필요한 함수들을 불러옵니다.
-import { initializeSocket, joinChatRoom, sendChatMessage } from './socketIO.js';
+import { joinChatRoom, sendChatMessage } from './socketIO.js';
 
 // HTML 요소들을 가져옵니다.
-const chatTabs = document.querySelector('.chat-tabs');
+export const chatTabs = document.querySelector('.chat-tabs');
 const chatRoomsContainer = document.querySelector('.chat-rooms');
 const chatForm = document.querySelector('.chat-input-container');
 const chatInput = chatForm.querySelector('.chat-input');
@@ -10,7 +10,7 @@ const chatInput = chatForm.querySelector('.chat-input');
 let activeRoomId = null;
 
 // 임시 메시지 데이터베이스 (실제로는 서버에서 관리)
-const messagesDatabase = {
+export let messagesDatabase = {
   'user123': [
     { senderId: 'user123', text: '안녕하세요!' },
     { senderId: 'self', text: '네, 안녕하세요.' },
@@ -49,33 +49,46 @@ export function getDirectMessageRoomId(myUid, otherUid) //이건 최초생성시
     return uids.join('_');
 
 }
-export function openChatRoom(roomId, roomName) { //이미 만들어진 방을 사용할때 필요함
-  // ⭐ socketManager.js의 joinChatRoom 함수를 사용
-  joinChatRoom(roomId);
 
-  if (!document.querySelector(`.chat-tab[data-room-id="${roomId}"]`)) {
-    createChatTab(roomId, roomName);
-  }
 
+export function openChatRoom(roomId, roomName) {
+  // 1. 채팅방 UI 요소가 없으면 새로 만듭니다.
   let roomElement = document.querySelector(`.chat-room[data-room-id="${roomId}"]`);
   if (!roomElement) {
     roomElement = createChatRoomElement(roomId);
     chatRoomsContainer.appendChild(roomElement);
   }
+
+  // 2. 소켓 서버에 조인 요청
+  joinChatRoom(roomId);
+
+  // 3. UI 활성화 및 상태 업데이트
+  document.querySelectorAll('.chat-tab').forEach(tab => tab.classList.remove('active', 'has-new-message'));
+  document.querySelectorAll('.chat-room').forEach(room => room.classList.remove('active'));
+
+  const activeTab = document.querySelector(`.chat-tab[data-room-id="${roomId}"]`);
+  if (activeTab) {
+    activeTab.classList.add('active');
+    activeTab.classList.remove('has-new-message'); // 알림 제거
+  }
+  roomElement.classList.add('active');
+  activeRoomId = roomId;
+
   loadChatMessages(roomId);
 }
 
-function createChatTab(roomId, roomName) {
+export function createChatTab(roomId, roomName) {
   const tab = document.createElement('div');
   tab.className = 'chat-tab';
   tab.dataset.roomId = roomId;
   tab.textContent = roomName;
 
+  // ⭐ 탭 클릭 시, 채팅방을 활성화하는 openChatRoom을 호출합니다.
   tab.addEventListener('click', () => {
-    loadChatMessages(roomId);
+    openChatRoom(roomId, roomName);
   });
 
-  chatTabs.appendChild(tab);
+  return tab; // 탭 요소를 반환
 }
 
 function createChatRoomElement(roomId) {
@@ -123,19 +136,26 @@ function loadChatMessages(roomId) {
   });
 
   requestAnimationFrame(() => scrollToBottom(chatMessagesElement));
+
+  if (currentTab) {
+      currentTab.classList.add('active');
+      currentTab.classList.remove('has-new-message');
+  }
+
 }
 
 export function addMessageToRoom(messagesContainer, message, isSelf = false) {
   const msgElem = document.createElement('div');
 
   msgElem.textContent = message;
-
+  msgElem.classList.add('chat-message');
   if (isSelf) {
       msgElem.classList.add('self');
   }
-  messagesContainer.appendChild(msgElem);
+  messagesContainer.prepend(msgElem);
 
   requestAnimationFrame(() => scrollToBottom(messagesContainer));
+    console.log('메시지 전송 직후 messagesDatabase 상태:', messagesDatabase);
 }
 
 function scrollToBottom(element) {
@@ -147,3 +167,30 @@ function scrollToBottom(element) {
 // ----------------------------------------------------
 // 페이지 로드 시
 // ----------------------------------------------------
+export function closeChatRoom(roomId) {
+    // 1. 소켓 연결에서 방 나가기
+    leaveChatRoom(roomId);
+
+    // 2. UI 요소 제거
+    const tabElement = document.querySelector(`.chat-tab[data-room-id="${roomId}"]`);
+    const roomElement = document.querySelector(`.chat-room[data-room-id="${roomId}"]`);
+    if (tabElement) {
+        tabElement.remove();
+    }
+    if (roomElement) {
+        roomElement.remove();
+    }
+
+    // 3. 로컬 데이터베이스 정리
+    if (messagesDatabase[roomId]) {
+        delete messagesDatabase[roomId];
+    }
+    // localStorage도 사용하는 경우, 아래 코드 추가
+    // localStorage.removeItem(`chat_room_${roomId}`);
+
+    // ⭐⭐ 활성화된 채팅방이 없다면, activeRoomId를 초기화합니다.
+    if (activeRoomId === roomId) {
+        activeRoomId = null;
+        // 다른 채팅방을 자동으로 열거나, 초기 화면을 보여주는 로직 추가
+    }
+}

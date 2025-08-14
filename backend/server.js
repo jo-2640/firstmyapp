@@ -26,8 +26,10 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // 4. 공통 미들웨어 설정
+const clientOrigin = process.env.CLIENT_BASE_URL || 'http://localhost:5173';
+console.log(`클라이언트 오리진: ${clientOrigin}`); // 클라이언트 오리진을 로그로 출력합니다.
 const corsOptions = {
-    origin: 'http://localhost:5173',
+    origin: clientOrigin,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
     credentials: true,
     optionsSuccessStatus: 204

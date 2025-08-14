@@ -365,38 +365,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('채팅 데이터가 localStorage에서 로드되었습니다.');
         }
 
-    if (AppUI.deleteAllDataBtn) {
-        AppUI.deleteAllDataBtn.addEventListener('click', async () => {
-            if (!confirm('경고: 정말로 모든 사용자 계정과 Firestore 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다!')) return;
-            if (!confirm('최종 확인: 모든 데이터가 영구적으로 삭제됩니다. 계속하시겠습니까?')) return;
-            showToast('모든 데이터 삭제 요청 중...', 'info');
-            try {
-                const response = await fetch('http://localhost:3000/api/delete-all-data', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    showToast(data.message, 'success');
-                    console.log('데이터 삭제 성공:', data.message);
-                    if (auth.currentUser) {
-                        // ✅ 최신 모듈 방식으로 로그아웃 함수 호출
-                        await signOut(auth);
-                        console.log("[Auth Service] 모든 데이터 삭제 후 Firebase 세션 로그아웃 완료.");
-                    }
-                } else {
-                    const errorMessage = data.message || '데이터 삭제 실패';
-                    showToast(errorMessage, 'error');
-                    console.error('데이터 삭제 실패:', errorMessage);
-                }
-            } catch (error) {
-                console.error("클라이언트에서 데이터 삭제 API 호출 오류:", error);
-                showToast(`데이터 삭제 중 네트워크 오류 발생: ${error.message}`, 'error');
-            }
-        });
-    } else {
-        console.error("오류: ID 'deleteAllDataBtn'을 가진 요소를 찾을 수 없습니다.");
-    }
+
 
     if (AppUI.btnLogout) {
         AppUI.btnLogout.addEventListener('click', handleLogout);

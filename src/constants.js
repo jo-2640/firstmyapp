@@ -6,9 +6,9 @@ export const LOCAL_STORAGE_KEYS = {
     REMEMBER_ME_PASSWORD: 'rememberMePassword', // 보안 경고: 실제 서비스에서는 비밀번호 저장을 권장하지 않습니다.
     REMEMBER_ME_CHECKED: 'rememberMeChecked',
 };
-//export const SERVER_BASE_URL = import.meta.env.VITE_SERVER_BASE_URL;
+export const SERVER_BASE_URL = import.meta.env.VITE_SERVER_BASE_URL;
 
-export const SERVER_BASE_URL = 'https://backend-6rrm3p8dq-jojoengins-projects.vercel.app'
+
 
 export let BIRTH_YEAR_RANGE = null; // ✅ null로 초기화
 

@@ -268,7 +268,7 @@ export function setupAuthListener() {
                 }
                 const userData = docSnapshot.data();
                 setCurrentUser(user.uid, userData, userData.nickname);
-
+console.log("--- onSnapshot 리스너가 호출되었습니다. ---");
                 if (!hasLoadedInitialData) {
                      await initializeMainContent(userData); //순번이 이게 1번임 firebase에있는 유저별 선택사항 넣어줘야함
                      initializeFriendList();
@@ -279,8 +279,6 @@ export function setupAuthListener() {
                          region:  'all'
                      };
 
-
-            // ... 기존 초기화 로직 ...
                     console.log("[Auth Service] 사용자 문서 데이터 실시간 로드 완료. UI 업데이트 시작.");
                     await loadUserProfileImage(user.uid, userData.profileImgUrl, myProfileImage, userData.gender);
 

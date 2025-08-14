@@ -1,9 +1,11 @@
-// public/socketManager.js
 console.log('socketManager.js 파일이 로드되었습니다!');
 import { auth } from './firebase-init.js'; // ⭐⭐ auth 인스턴스를 import 합니다
-import { addMessageToRoom,messagesDatabase, openChatRoom, createChatTab } from './chat.js';
+import { addMessageToRoom, messagesDatabase, openChatRoom, createChatTab } from './chat.js';
 
 let socket = null;
+
+// ⭐ 서버 주소 환경 변수 사용
+const SERVER_BASE_URL = import.meta.env.VITE_SERVER_BASE_URL;
 
 export async function getFreshToken() {
    const user = auth.currentUser;
@@ -13,7 +15,9 @@ export async function getFreshToken() {
    }
    return null;
  }
+
 let isTokenRefreshing = false;
+
 export function disconnectSocket() {
     if (socket) {
         socket.disconnect(); // ✅ 소켓 연결 종료 함수
@@ -21,9 +25,11 @@ export function disconnectSocket() {
         console.log("Socket 연결이 끊어졌습니다.");
     }
 }
+
 // 소켓 연결을 시도하는 함수 (비동기)
 export const initializeSocket = async (forceRefresh = false) => {
-    if (socket) {
+    // ⭐ 이미 연결되어 있는 경우, 새로운 소켓을 만들지 않고 기존 소켓을 반환합니다.
+    if (socket && socket.connected) {
         return socket;
     }
 
@@ -42,16 +48,25 @@ export const initializeSocket = async (forceRefresh = false) => {
         return;
     }
 
-    // 이전에 연결 시도한 소켓이 있다면 끊어주고 시작
-    if (socket) {
-        socket.disconnect();
+    // ⭐ 소켓 인스턴스가 없거나 비활성 상태일 때만 새로 생성
+    if (!socket || !socket.active) {
+        socket = io(SERVER_BASE_URL, {
+            auth: {
+                token: authToken,
+            },
+            transports: ["websocket", "polling"],
+        });
+    } else {
+        // ⭐ 이미 연결 시도 중인 소켓이 있다면, 인증 정보만 업데이트
+        socket.auth = { token: authToken };
     }
 
-    socket = io('http://localhost:3000', {
-        auth: {
-            token: authToken,
-        },
-    });
+    // ⭐⭐ 이벤트 리스너를 한 번만 등록하도록 기존 리스너를 먼저 제거
+    socket.off('connect');
+    socket.off('connect_error');
+    socket.off('chat message');
+    socket.off('notify message');
+
 
     socket.on('connect', () => {
         console.log('소켓 서버에 연결되었습니다:', socket.id);
@@ -61,15 +76,21 @@ export const initializeSocket = async (forceRefresh = false) => {
     socket.on('connect_error', async (err) => {
         console.error('소켓 연결 오류:', err.message);
 
-        // ⭐ 오류 메시지에 토큰 만료 내용이 포함되어 있고, 아직 새로고침을 시도하지 않았다면
+        // ⭐ 토큰 만료 오류일 경우에만 재연결 로직 실행
         if (err.message.includes('auth/id-token-expired') && !isTokenRefreshing) {
             isTokenRefreshing = true;
-            console.log('토큰이 만료되었습니다. 새 토큰으로 재연결 시도합니다.');
-            // 새 토큰으로 다시 연결 시도 (재귀 호출)
-            await initializeSocket(true);
+            console.log('토큰이 만료되었습니다. 새 토큰으로 재연결을 시도합니다.');
+            try {
+                const newAuthToken = await getFreshToken();
+                socket.auth = { token: newAuthToken }; // 소켓 인증 정보 업데이트
+                socket.connect(); // 새 토큰으로 재연결
+            } catch (refreshError) {
+                console.error('토큰 재발급 실패:', refreshError);
+                isTokenRefreshing = false;
+                // 재발급 실패 시 더 이상 재연결 시도하지 않고 사용자에게 알리는 로직 추가 가능
+            }
         }
     });
-
 
     socket.on('chat message', (data) => {
         const { message, roomId, senderId } = data;
@@ -96,26 +117,21 @@ export const initializeSocket = async (forceRefresh = false) => {
         });
     });
 
-    // ⭐⭐ 이중 중첩된 코드를 제거하고, 알림 로직을 올바르게 수정했습니다.
     socket.on('notify message', (data) => {
         const { roomId, senderName } = data;
         console.log(`[알림] 새 메시지가 도착했습니다: 방 ${roomId} - 발신자 ${senderName}`);
 
-        // 탭이 없으면 생성하고, 있으면 기존 탭을 사용
         let chatTab = document.querySelector(`.chat-tab[data-room-id="${roomId}"]`);
         if (!chatTab) {
-            // createChatTab 함수는 탭 요소를 반환합니다.
             const newTab = createChatTab(roomId, senderName);
-            document.querySelector('.chat-tabs').appendChild(newTab); // 탭을 화면에 추가
-            chatTab = newTab; // 변수에 할당
+            document.querySelector('.chat-tabs').appendChild(newTab);
+            chatTab = newTab;
         }
 
-        // 탭이 존재한다면 알림 클래스를 추가
         if (chatTab) {
             chatTab.classList.add('has-new-message');
         }
 
-        // 메시지를 로컬 데이터베이스에 저장하는 로직
         if (!messagesDatabase[roomId]) {
             messagesDatabase[roomId] = [];
         }

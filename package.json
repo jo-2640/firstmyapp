@@ -7,7 +7,8 @@
     "dev": "vite",
     "start": "vite preview",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "chmod +x node_modules/.bin/vite"
   },
   "engines": {
     "node": "22.x"
@@ -16,10 +17,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "vite": "latest",
     "firebase": "^10.12.2",
     "@azure/storage-blob": "^12.1.0"
   },
-  "devDependencies": {
-    "vite": "latest"
-  }
+  "devDependencies": {}
 }

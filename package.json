@@ -2,10 +2,15 @@
   "name": "chat-app-frontend",
   "version": "1.0.0",
   "description": "Chat App Frontend",
+  "type": "module",
   "scripts": {
-    "dev": "vite",  
-    "start": "vite",  
-    "build": "vite build"
+    "dev": "vite",
+    "start": "vite preview",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "engines": {
+    "node": "18.x"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +20,6 @@
     "@azure/storage-blob": "^12.1.0"
   },
   "devDependencies": {
-    "vite": "^5.x.x"
+    "vite": "lastest"
   }
 }

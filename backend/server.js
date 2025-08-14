@@ -53,7 +53,7 @@ const userIdToSocketId = new Map();
 const io = new Server(server, {
     cors: {
         // ⭐⭐⭐ Express CORS 설정과 일치시켰습니다. ⭐⭐⭐
-        origin: 'http://localhost:5173',
+        origin: clientOrigin,
     }
 });
 
